@@ -125,6 +125,14 @@ def main():
         print("\n  * Single-hand fallback: One hand controls everything")
         print("\n" + "=" * 60 + "\n")
         
+        # Create window with proper settings for resizing and fullscreen
+        window_name = 'MMGI - Two-Hand Mode'
+        cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+        cv2.resizeWindow(window_name, 1280, 720)
+        is_fullscreen = False
+        print("[Window] Created resizable window (1280x720)")
+        print("  Tip: Press 'f' to toggle fullscreen\n")
+        
         # Main loop
         while camera.is_opened():
             # Read frame
@@ -241,13 +249,21 @@ def main():
                 frame = fps_counter.display_fps(frame)
             
             # Show frame
-            cv2.imshow('MMGI - Two-Hand Mode', frame)
+            cv2.imshow(window_name, frame)
             
-            # Check for quit
+            # Check for quit and fullscreen toggle
             key = cv2.waitKey(1) & 0xFF
             if key == ord('q') or key == 27:  # 'q' or ESC
                 print("\n[Exit] User requested quit. Shutting down...")
                 break
+            elif key == ord('f'):  # 'f' to toggle fullscreen
+                is_fullscreen = not is_fullscreen
+                if is_fullscreen:
+                    cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+                    print("[Window] Switched to FULLSCREEN mode")
+                else:
+                    cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_NORMAL)
+                    print("[Window] Switched to WINDOWED mode")
         
         print("\n[Complete] Main loop ended.")
         

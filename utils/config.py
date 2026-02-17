@@ -19,8 +19,8 @@ class Config:
     DEFAULT_CONFIG = {
         "camera": {
             "index": 0,
-            "width": 640,
-            "height": 480,
+            "width": 1280,
+            "height": 720,
             "fps": 30
         },
         "hand_tracking": {
