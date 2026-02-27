@@ -163,7 +163,7 @@ def main() -> None:
             hands_info = hand_tracker.get_hands_info(results)
 
             # --- Draw landmarks ---
-            if config.get('display.show_landmarks') and results.multi_hand_landmarks:
+            if config.get('display.show_landmarks') and results.hand_landmarks:
                 frame = hand_tracker.draw_landmarks(frame, results)
 
             # --- Hand count badge ---
