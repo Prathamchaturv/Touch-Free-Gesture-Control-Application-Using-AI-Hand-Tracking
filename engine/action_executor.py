@@ -1,0 +1,154 @@
+"""
+engine/action_executor.py - The Action Performer
+
+Actually executes computer actions based on the gesture resolved by
+the DecisionEngine:
+
+    - Launch applications  (Brave browser, Spotify)
+    - Media control        (next / previous track, play/pause)
+    - Volume control       (up / down / mute)
+
+Uses:
+    subprocess  – launch applications
+    pyautogui   – send media / volume keyboard events
+    os          – expand environment variables in paths
+
+Displays a fading on-screen notification for each action executed.
+"""
+
+import os
+import time
+import subprocess
+import cv2
+
+try:
+    import pyautogui
+    pyautogui.FAILSAFE = False   # disable corner-abort for gesture control
+    _PYAUTOGUI = True
+except ImportError:
+    _PYAUTOGUI = False
+    print('[ActionExecutor] Warning: pyautogui not installed — media/volume keys disabled')
+
+
+class ActionExecutor:
+    """Executes system actions and shows brief on-screen feedback."""
+
+    # Human-readable labels for each action ID
+    _LABELS: dict[str, str] = {
+        'open_brave':   'Launch Brave Browser',
+        'open_spotify': 'Launch Spotify',
+        'next_track':   'Next Track',
+        'prev_track':   'Previous Track',
+        'play_pause':   'Play / Pause',
+        'volume_up':    'Volume Up',
+        'volume_down':  'Volume Down',
+        'mute':         'Mute',
+    }
+
+    # pyautogui key names for media / volume actions
+    _KEY_MAP: dict[str, str] = {
+        'next_track':  'nexttrack',
+        'prev_track':  'prevtrack',
+        'play_pause':  'playpause',
+        'volume_up':   'volumeup',
+        'volume_down': 'volumedown',
+        'mute':        'volumemute',
+    }
+
+    _FEEDBACK_DURATION: float = 2.5   # seconds to show on-screen notification
+
+    def __init__(self, config: dict | None = None):
+        cfg = config or {}
+        self._brave_path   = cfg.get(
+            'brave_path',
+            r'C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe',
+        )
+        self._spotify_path = cfg.get(
+            'spotify_path',
+            r'C:\Users\%USERNAME%\AppData\Roaming\Spotify\Spotify.exe',
+        )
+
+        self._last_action: str | None = None
+        self._last_action_time: float = 0.0
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def execute(self, action: str) -> None:
+        """Execute the named action and record it for display feedback."""
+        self._last_action      = action
+        self._last_action_time = time.time()
+
+        label = self._LABELS.get(action, action)
+        print(f'  [{action}] {label}')
+
+        try:
+            if action == 'open_brave':
+                self._launch(self._brave_path)
+
+            elif action == 'open_spotify':
+                self._launch(self._spotify_path)
+
+            elif action in self._KEY_MAP:
+                self._press(self._KEY_MAP[action])
+
+            else:
+                print(f'  [ActionExecutor] Unknown action: {action}')
+
+        except Exception as exc:
+            print(f'  [ActionExecutor] Error executing "{action}": {exc}')
+
+    def display_action(self, frame):
+        """Render a fading action-feedback banner at the bottom of the frame."""
+        if not self._last_action:
+            return frame
+
+        elapsed = time.time() - self._last_action_time
+        if elapsed > self._FEEDBACK_DURATION:
+            return frame
+
+        # Alpha fades from 1 → 0 over the display duration
+        alpha = max(0.0, 1.0 - (elapsed / self._FEEDBACK_DURATION))
+        label = self._LABELS.get(self._last_action, self._last_action)
+        text  = f'Action: {label}'
+
+        h, w = frame.shape[:2]
+        (tw, th), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.75, 2)
+        x = (w - tw) // 2
+        y = h - 35
+
+        # Background bar
+        overlay = frame.copy()
+        cv2.rectangle(overlay, (x - 10, y - th - 8), (x + tw + 10, y + 8),
+                      (20, 20, 20), -1)
+        cv2.addWeighted(overlay, alpha * 0.75, frame, 1 - alpha * 0.75, 0, frame)
+
+        # Text with fade
+        intensity = int(255 * alpha)
+        cv2.putText(
+            frame, text, (x, y),
+            cv2.FONT_HERSHEY_SIMPLEX, 0.75,
+            (intensity, intensity, intensity), 2, cv2.LINE_AA,
+        )
+        return frame
+
+    # ------------------------------------------------------------------
+    # Private helpers
+    # ------------------------------------------------------------------
+
+    def _launch(self, path: str) -> None:
+        """Launch an application by path, expanding %ENV_VARS%."""
+        expanded = os.path.expandvars(path)
+        if os.path.exists(expanded):
+            subprocess.Popen([expanded])
+            print(f'  [ActionExecutor] Launched: {expanded}')
+        else:
+            print(f'  [ActionExecutor] Application not found: {expanded}')
+
+    def _press(self, key: str) -> None:
+        """Send a keyboard event via pyautogui."""
+        if _PYAUTOGUI:
+            pyautogui.press(key)
+        else:
+            print(f'  [ActionExecutor] pyautogui unavailable — cannot press "{key}"')
