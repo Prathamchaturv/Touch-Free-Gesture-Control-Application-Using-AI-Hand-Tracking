@@ -32,7 +32,7 @@ class DecisionEngine:
     # Built-in defaults (used if gesture_map.json is missing or incomplete)
     _DEFAULT_RIGHT: dict[str, str] = {
         'One Finger':     'open_brave',
-        'Two Fingers':    'open_spotify',
+        'Two Fingers':    'open_apple_music',
         'Ring and Pinky': 'next_track',
         'Pinky':          'prev_track',
     }

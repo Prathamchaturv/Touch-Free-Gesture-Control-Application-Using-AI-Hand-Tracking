@@ -103,8 +103,8 @@ def main() -> None:
 
         # Action Executor
         action_executor = ActionExecutor(config={
-            'brave_path':   config.get('apps.brave_path'),
-            'spotify_path': config.get('apps.spotify_path'),
+            'brave_path':        config.get('apps.brave_path'),
+            'apple_music_aumid': config.get('apps.apple_music_aumid'),
         })
         print('  ✓ Action Executor initialized')
 
@@ -123,7 +123,7 @@ def main() -> None:
         print('\nTwo-Hand Gesture Mapping:')
         print('  RIGHT HAND  (App & Media Control):')
         print('    · ONE FINGER    → Launch Brave Browser')
-        print('    · TWO FINGERS   → Launch Spotify')
+        print('    · TWO FINGERS   → Launch Apple Music')
         print('    · RING + PINKY  → Next Song')
         print('    · PINKY         → Previous Song')
         print('  LEFT HAND   (Volume Control):')

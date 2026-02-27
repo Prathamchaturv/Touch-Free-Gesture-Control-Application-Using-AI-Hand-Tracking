@@ -4,7 +4,7 @@ engine/action_executor.py - The Action Performer
 Actually executes computer actions based on the gesture resolved by
 the DecisionEngine:
 
-    - Launch applications  (Brave browser, Spotify)
+    - Launch applications  (Brave browser, Apple Music)
     - Media control        (next / previous track, play/pause)
     - Volume control       (up / down / mute)
 
@@ -35,14 +35,14 @@ class ActionExecutor:
 
     # Human-readable labels for each action ID
     _LABELS: dict[str, str] = {
-        'open_brave':   'Launch Brave Browser',
-        'open_spotify': 'Launch Spotify',
-        'next_track':   'Next Track',
-        'prev_track':   'Previous Track',
-        'play_pause':   'Play / Pause',
-        'volume_up':    'Volume Up',
-        'volume_down':  'Volume Down',
-        'mute':         'Mute',
+        'open_brave':        'Launch Brave Browser',
+        'open_apple_music':  'Launch Apple Music',
+        'next_track':        'Next Track',
+        'prev_track':        'Previous Track',
+        'play_pause':        'Play / Pause',
+        'volume_up':         'Volume Up',
+        'volume_down':       'Volume Down',
+        'mute':              'Mute',
     }
 
     # pyautogui key names for media / volume actions
@@ -59,13 +59,15 @@ class ActionExecutor:
 
     def __init__(self, config: dict | None = None):
         cfg = config or {}
-        self._brave_path   = cfg.get(
-            'brave_path',
-            r'C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe',
+        self._brave_path = os.path.expandvars(
+            cfg.get(
+                'brave_path',
+                r'%LOCALAPPDATA%\BraveSoftware\Brave-Browser\Application\brave.exe',
+            )
         )
-        self._spotify_path = cfg.get(
-            'spotify_path',
-            r'C:\Users\%USERNAME%\AppData\Roaming\Spotify\Spotify.exe',
+        self._apple_music_aumid = cfg.get(
+            'apple_music_aumid',
+            'AppleInc.AppleMusicWin_nzyj5cx40ttqa!App',
         )
 
         self._last_action: str | None = None
@@ -87,8 +89,8 @@ class ActionExecutor:
             if action == 'open_brave':
                 self._launch(self._brave_path)
 
-            elif action == 'open_spotify':
-                self._launch(self._spotify_path)
+            elif action == 'open_apple_music':
+                self._launch_store_app(self._apple_music_aumid)
 
             elif action in self._KEY_MAP:
                 self._press(self._KEY_MAP[action])
@@ -138,13 +140,18 @@ class ActionExecutor:
     # ------------------------------------------------------------------
 
     def _launch(self, path: str) -> None:
-        """Launch an application by path, expanding %ENV_VARS%."""
+        """Launch an application by absolute path."""
         expanded = os.path.expandvars(path)
         if os.path.exists(expanded):
             subprocess.Popen([expanded])
             print(f'  [ActionExecutor] Launched: {expanded}')
         else:
             print(f'  [ActionExecutor] Application not found: {expanded}')
+
+    def _launch_store_app(self, aumid: str) -> None:
+        """Launch a Microsoft Store app by its Application User Model ID."""
+        subprocess.Popen(['explorer.exe', f'shell:AppsFolder\\{aumid}'])
+        print(f'  [ActionExecutor] Launched Store app: {aumid}')
 
     def _press(self, key: str) -> None:
         """Send a keyboard event via pyautogui."""

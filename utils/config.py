@@ -38,8 +38,8 @@ class Config:
             'show_hand_detection': True,
         },
         'apps': {
-            'brave_path': r'C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe',
-            'spotify_path': r'C:\Users\%USERNAME%\AppData\Roaming\Spotify\Spotify.exe',
+            'brave_path': r'%LOCALAPPDATA%\BraveSoftware\Brave-Browser\Application\brave.exe',
+            'apple_music_aumid': 'AppleInc.AppleMusicWin_nzyj5cx40ttqa!App',
         },
     }
 
