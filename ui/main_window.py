@@ -7,7 +7,7 @@ Window layout
 │  Header  :  ◉ MMGI  Smart Mode AI Controller     ⬜⬛▢  │
 ├────────────────────────────────────────────────────────┤
 │ Sidebar │   Vision Panel (centre)    │  System Panel   │
-│  220 px │       (stretches)          │    280 px       │
+│  220 px │       (stretches)          │    340 px       │
 ├─────────┴────────────────────────────┴─────────────────┤
 │                   Activity Log (76 px)                  │
 └────────────────────────────────────────────────────────┘

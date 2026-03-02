@@ -276,15 +276,17 @@ class ModeCard(QFrame):
         for r, (gesture, action) in enumerate(instructions):
             lbl_l = QLabel(gesture)
             lbl_l.setStyleSheet(
-                f'color: {TEXT_SEC}; font-size: 12px; '
+                f'color: {TEXT_SEC}; font-size: 11px; '
                 f'background: transparent; border: none;'
             )
+            lbl_l.setWordWrap(True)
             lbl_r = QLabel(action)
             lbl_r.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
             lbl_r.setStyleSheet(
-                f'color: {ACCENT}; font-size: 12px; font-weight: 600; '
+                f'color: {ACCENT}; font-size: 11px; font-weight: 600; '
                 f'background: transparent; border: none;'
             )
+            lbl_r.setWordWrap(True)
             self._instr_lay.addWidget(lbl_l, r, 0)
             self._instr_lay.addWidget(lbl_r, r, 1)
 
@@ -357,13 +359,31 @@ class PerformanceCard(QFrame):
         )
         lay.addWidget(title)
 
-        # Metrics grid: FPS | Latency
-        grid = QHBoxLayout()
-        self._fps_lbl     = self._metric_widget('FPS',     '—')
-        self._latency_lbl = self._metric_widget('LATENCY', '—')
-        grid.addWidget(self._fps_lbl[0])
-        grid.addWidget(self._latency_lbl[0])
-        lay.addLayout(grid)
+        # Metrics grid: FPS | Latency  — use QGridLayout for clean two-column layout
+        metrics_w = QWidget()
+        metrics_w.setStyleSheet('background: transparent;')
+        metrics_grid = QGridLayout(metrics_w)
+        metrics_grid.setContentsMargins(0, 0, 0, 0)
+        metrics_grid.setHorizontalSpacing(16)
+        metrics_grid.setVerticalSpacing(2)
+
+        fps_title = QLabel('FPS')
+        fps_title.setStyleSheet(f'color: {TEXT_HINT}; font-size: 10px; letter-spacing: 1px; background: transparent; border: none;')
+        self._fps_val = QLabel('—')
+        self._fps_val.setStyleSheet(f'color: {TEXT_PRI}; font-size: 15px; font-weight: 700; background: transparent; border: none;')
+
+        lat_title = QLabel('LATENCY')
+        lat_title.setStyleSheet(f'color: {TEXT_HINT}; font-size: 10px; letter-spacing: 1px; background: transparent; border: none;')
+        self._latency_val = QLabel('—')
+        self._latency_val.setStyleSheet(f'color: {TEXT_PRI}; font-size: 15px; font-weight: 700; background: transparent; border: none;')
+
+        metrics_grid.addWidget(fps_title,         0, 0)
+        metrics_grid.addWidget(self._fps_val,     1, 0)
+        metrics_grid.addWidget(lat_title,         0, 1)
+        metrics_grid.addWidget(self._latency_val, 1, 1)
+        metrics_grid.setColumnStretch(0, 1)
+        metrics_grid.setColumnStretch(1, 1)
+        lay.addWidget(metrics_w)
 
         lay.addWidget(_divider())
 
@@ -415,27 +435,13 @@ class PerformanceCard(QFrame):
         """)
         lay.addWidget(self._conf_bar)
 
-    def _metric_widget(self, label: str, value: str) -> tuple[QWidget, QLabel]:
-        w     = QWidget()
-        w.setStyleSheet('background: transparent;')
-        v_lay = QVBoxLayout(w)
-        v_lay.setContentsMargins(0, 0, 0, 0)
-        v_lay.setSpacing(2)
-        lbl_t = QLabel(label)
-        lbl_t.setStyleSheet(f'color: {TEXT_HINT}; font-size: 10px; letter-spacing: 1px; background: transparent; border: none;')
-        lbl_v = QLabel(value)
-        lbl_v.setStyleSheet(f'color: {TEXT_PRI}; font-size: 20px; font-weight: 700; background: transparent; border: none;')
-        v_lay.addWidget(lbl_t)
-        v_lay.addWidget(lbl_v)
-        return w, lbl_v
-
     @pyqtSlot(float)
     def _on_fps(self, fps: float) -> None:
-        self._fps_lbl[1].setText(f'{fps:.0f}')
+        self._fps_val.setText(f'{fps:.0f}')
 
     @pyqtSlot(float)
     def _on_latency(self, ms: float) -> None:
-        self._latency_lbl[1].setText(f'{ms:.0f} ms')
+        self._latency_val.setText(f'{ms:.0f} ms')
 
     @pyqtSlot(int)
     def _on_volume(self, pct: int) -> None:
@@ -459,12 +465,12 @@ class SystemPanel(QWidget):
         self._build(state)
 
     def _build(self, state: SharedState) -> None:
-        self.setFixedWidth(280)
+        self.setFixedWidth(340)
         self.setStyleSheet(f'background-color: {BG_DEEP};')
 
         root = QVBoxLayout(self)
-        root.setContentsMargins(0, 20, 20, 20)
-        root.setSpacing(12)
+        root.setContentsMargins(0, 16, 16, 16)
+        root.setSpacing(10)
 
         root.addWidget(SystemCard(state))
         root.addWidget(ModeCard(state))
