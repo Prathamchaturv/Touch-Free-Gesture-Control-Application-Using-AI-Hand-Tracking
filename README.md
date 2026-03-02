@@ -33,23 +33,17 @@ Mode switching is triggered by holding **Three Fingers** for **1 second** (10-fr
 |---|---|
 | ☝️ One Finger | Open Browser (Brave) |
 | ✌️ Two Fingers | Open Music (Apple Music) |
-| 💍 Ring + Pinky | Next Track |
-| 🤙 Pinky | Previous Track |
 
 ### Media Mode Actions
 | Gesture | Action |
 |---|---|
-| 💍 Ring + Pinky | Next Track |
-| 🤙 Pinky | Previous Track |
-| 👍 Thumbs Up | Play / Pause |
-| ✌️ Two Fingers | Volume Up |
+| ☝️ One Finger | Volume Up |
+| ✌️ Two Fingers | Volume Down |
+| 🖐️ Four Fingers | Play / Pause |
+| 👍 Thumbs Up | Mute / Unmute |
 
 ### System Mode Actions
-| Gesture | Action |
-|---|---|
-| 👍 Thumbs Up | Volume Up |
-| 🤙 Pinky | Volume Down |
-| 💍 Ring + Pinky | Mute |
+*(empty — to be configured)*
 
 ---
 
