@@ -6,14 +6,15 @@ tracker and matches it against known gesture patterns to return a
 human-readable gesture name.
 
 Recognised gestures:
-    Open Palm    – all 5 fingers extended        (activation trigger)
-    Fist         – all fingers curled            (deactivation trigger)
-    Thumbs Up    – only thumb extended
-    One Finger   – only index finger up          (pointing)
-    Two Fingers  – index + middle up             (peace sign)
-    Three Fingers– index + middle + ring up
+    Open Palm     – all 5 fingers extended        (activation trigger)
+    Fist          – all fingers curled            (deactivation trigger)
+    Thumbs Up     – only thumb extended
+    One Finger    – only index finger up          (pointing)
+    Two Fingers   – index + middle up             (peace sign)
+    Three Fingers – index + middle + ring up      (mode cycle trigger)
+    Four Fingers  – index + middle + ring + pinky up
     Ring and Pinky – ring + pinky only up
-    Pinky        – only pinky up
+    Pinky         – only pinky up
 """
 
 import cv2
@@ -35,6 +36,7 @@ class GestureClassifier:
         ('Fist',          {'thumb': False, 'index': False, 'middle': False, 'ring': False, 'pinky': False}),
         ('Thumbs Up',     {'thumb': True,  'index': False, 'middle': False, 'ring': False, 'pinky': False}),
         ('Three Fingers', {'index': True,  'middle': True,  'ring': True,  'pinky': False}),
+        ('Four Fingers',  {'index': True,  'middle': True,  'ring': True,  'pinky': True}),
         ('Two Fingers',   {'index': True,  'middle': True,  'ring': False, 'pinky': False}),
         ('Ring and Pinky',{'index': False, 'middle': False, 'ring': True,  'pinky': True}),
         ('One Finger',    {'index': True,  'middle': False, 'ring': False, 'pinky': False}),
