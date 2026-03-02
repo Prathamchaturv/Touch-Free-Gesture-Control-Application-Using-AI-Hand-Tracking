@@ -22,28 +22,27 @@ premium dark-theme PyQt6 dashboard.
 
 ## 🎛️ Smart Mode System
 
-Mode switching is triggered by holding a finger gesture for **1 second** (10-frame stability + 1.5 s cooldown):
+Mode switching is triggered by holding **Three Fingers** for **1 second** (10-frame stability + 1.5 s cooldown). Each hold cycles to the next mode:  **App → Media → System → App**
 
-| Gesture | Hold | Switches to |
+| Gesture | Hold | Effect |
 |---|---|---|
-| ☝️ One Finger | 1 s | **App Mode** |
-| ✌️ Two Fingers | 1 s | **Media Mode** |
-| 🤟 Three Fingers | 1 s | **System Mode** |
+| 🤟 Three Fingers | 1 s | Cycle to next mode |
 
 ### App Mode Actions
 | Gesture | Action |
 |---|---|
-| 👍 Thumbs Up | Open Brave Browser |
-| 💍 Ring + Pinky | Open Apple Music |
-| 🤙 Pinky | Volume Up |
+| ☝️ One Finger | Open Browser (Brave) |
+| ✌️ Two Fingers | Open Music (Apple Music) |
+| 💍 Ring + Pinky | Next Track |
+| 🤙 Pinky | Previous Track |
 
 ### Media Mode Actions
 | Gesture | Action |
 |---|---|
 | 💍 Ring + Pinky | Next Track |
 | 🤙 Pinky | Previous Track |
-| 🖐️ Open Palm | Play / Pause |
-| 👍 Thumbs Up | Volume Up |
+| 👍 Thumbs Up | Play / Pause |
+| ✌️ Two Fingers | Volume Up |
 
 ### System Mode Actions
 | Gesture | Action |
@@ -150,7 +149,7 @@ MMGI/
 
 1. Show **Open Palm** and hold for **2 seconds** → system activates (border turns green)
 2. Show **Fist** → instant deactivation
-3. Hold **1 / 2 / 3 fingers** for 1 second to switch mode
+3. Hold **Three Fingers** for 1 second → cycle to next mode (App→Media→System→App)
 4. Use mode-specific gestures to trigger actions (1 s cooldown between actions)
 
 ---
