@@ -1,4 +1,4 @@
-# MMGI - Phase 7 Dependencies
+# MMGI - Phase 6 Dependencies
 # Python 3.10+ required
 
 # NumPy - install first for other packages
@@ -14,7 +14,3 @@ mediapipe>=0.10.30
 # GUI automation library for system control (Phase 6)
 # Used for media keys and system interactions
 pyautogui>=0.9.54
-
-# ── Phase 7: Premium PyQt6 Dashboard UI ──────────────────────────────────────
-# Modern AI-style dark-theme desktop interface
-PyQt6>=6.7.0

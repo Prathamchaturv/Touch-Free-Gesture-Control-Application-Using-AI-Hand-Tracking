@@ -2,17 +2,13 @@
 MMGI - Multi-Modal Gesture Intelligence
 Production-Level Modular Architecture
 
-Entry point — by default launches the Phase 7 PyQt6 dashboard.
-Pass --headless to run the original OpenCV window pipeline instead.
-
-Usage
------
-    python main.py               # Premium PyQt6 dashboard (live camera)
-    python main.py --headless    # Classic OpenCV window
-    python main.py --simulate    # Premium dashboard, fake-data simulator
+Main orchestration layer that coordinates all modules:
+    core/   : Camera, HandTracker, GestureClassifier
+    engine/ : ActivationManager, DecisionEngine, ActionExecutor
+    utils/  : FPSCounter, Config
 
 Author : MMGI Project
-Date   : February - March 2026
+Date   : February 2026
 Python : 3.10+
 """
 
@@ -35,8 +31,8 @@ from utils.fps_counter         import FPSCounter
 from utils.config              import Config
 
 
-def headless_main() -> None:
-    """Original OpenCV-window pipeline (legacy / --headless mode)."""
+def main() -> None:
+    """Main orchestration function."""
     print('=' * 60)
     print('MMGI - Multi-Modal Gesture Intelligence')
     print('Production-Level Modular Architecture')
@@ -303,54 +299,6 @@ def headless_main() -> None:
         print('\n' + '=' * 60)
         print('MMGI Session Ended')
         print('=' * 60)
-
-
-def main() -> None:
-    """
-    Default entry point.
-    Launches the PyQt6 dashboard unless --headless is passed.
-    """
-    import argparse
-
-    parser = argparse.ArgumentParser(
-        description='MMGI - Multi-Modal Gesture Intelligence'
-    )
-    parser.add_argument(
-        '--headless',
-        action='store_true',
-        default=False,
-        help='Run the classic OpenCV pipeline without the PyQt6 UI.',
-    )
-    parser.add_argument(
-        '--simulate', '-s',
-        action='store_true',
-        default=False,
-        help='Launch the dashboard with the built-in fake-data simulator '
-             '(no camera required).',
-    )
-    args = parser.parse_args()
-
-    if args.headless:
-        headless_main()
-        return
-
-    # ── Launch the Premium PyQt6 Dashboard ─────────────────────────────────
-    from PyQt6.QtWidgets import QApplication
-    from PyQt6.QtGui     import QFont
-
-    app = QApplication(sys.argv)
-    app.setApplicationName('MMGI Dashboard')
-    app.setOrganizationName('MMGI')
-    app.setFont(QFont('Segoe UI', 10))
-
-    from ui.main_window   import MainWindow
-    from ui.state_manager import StateManager
-
-    state  = StateManager()
-    window = MainWindow(state=state, simulate=args.simulate)
-    window.show()
-
-    sys.exit(app.exec())
 
 
 if __name__ == '__main__':
