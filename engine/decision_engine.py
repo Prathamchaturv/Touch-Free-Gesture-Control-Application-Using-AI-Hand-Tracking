@@ -14,10 +14,9 @@ and will never be intercepted as mode-switch triggers.
 Mode Action Mappings (from gesture_map.json)
 --------------------------------------------
 App Mode    : One Finger → open_brave | Two Fingers → open_apple_music
-              Ring and Pinky → next_track | Pinky → prev_track
-Media Mode  : Ring and Pinky → next_track | Pinky → prev_track
-              Thumbs Up → play_pause | Two Fingers → volume_up
-System Mode : Thumbs Up → volume_up | Pinky → volume_down | Ring and Pinky → mute
+Media Mode  : One Finger → volume_up | Two Fingers → volume_down
+              Four Fingers → play_pause | Thumbs Up → mute
+System Mode : (empty — to be configured)
 """
 
 import json
@@ -59,20 +58,14 @@ class DecisionEngine:
         'App Mode': {
             'One Finger':    'open_brave',
             'Two Fingers':   'open_apple_music',
-            'Ring and Pinky':'next_track',
-            'Pinky':         'prev_track',
         },
         'Media Mode': {
-            'Ring and Pinky':'next_track',
-            'Pinky':         'prev_track',
-            'Thumbs Up':     'play_pause',
-            'Two Fingers':   'volume_up',
+            'One Finger':    'volume_up',
+            'Two Fingers':   'volume_down',
+            'Four Fingers':  'play_pause',
+            'Thumbs Up':     'mute',
         },
-        'System Mode': {
-            'Thumbs Up':     'volume_up',
-            'Pinky':         'volume_down',
-            'Ring and Pinky':'mute',
-        },
+        'System Mode': {},
     }
 
     def __init__(self, config_path: str | Path | None = None):
