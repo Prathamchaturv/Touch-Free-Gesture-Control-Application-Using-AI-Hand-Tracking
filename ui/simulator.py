@@ -22,7 +22,7 @@ from typing import List
 
 import numpy as np
 
-from PyQt6.QtCore  import QThread, pyqtSignal, QTimer
+from PyQt6.QtCore  import QThread, pyqtSignal, QTimer, Qt
 from PyQt6.QtGui   import QImage, QColor, QPainter, QFont, QLinearGradient
 
 from .state_manager import StateManager
