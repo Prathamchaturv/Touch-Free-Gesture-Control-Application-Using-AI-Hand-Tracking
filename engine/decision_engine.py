@@ -5,20 +5,19 @@ Implements a 3-mode (App / Media / System) gesture action resolver.
 
 Mode Switching
 --------------
-Hold One Finger   → App Mode
-Hold Two Fingers  → Media Mode
-Hold Three Fingers→ System Mode
+Hold Three Fingers for 1 second → cycles  App → Media → System → App
+(10-frame stability + 1.5 s cooldown before next switch)
 
-Requirements: 10-frame stability + 1-second hold, then 1.5-second cooldown
-before the next mode switch is allowed.
+One Finger and Two Fingers are now **free action gestures** in each mode
+and will never be intercepted as mode-switch triggers.
 
 Mode Action Mappings (from gesture_map.json)
 --------------------------------------------
-App Mode    : Thumbs Up → open_brave | Ring and Pinky → open_apple_music | Pinky → volume_up
-Media Mode  : Ring and Pinky → next_track | Pinky → prev_track | Open Palm → play_pause | Thumbs Up → volume_up
+App Mode    : One Finger → open_brave | Two Fingers → open_apple_music
+              Ring and Pinky → next_track | Pinky → prev_track
+Media Mode  : Ring and Pinky → next_track | Pinky → prev_track
+              Thumbs Up → play_pause | Two Fingers → volume_up
 System Mode : Thumbs Up → volume_up | Pinky → volume_down | Ring and Pinky → mute
-
-Mode-switch gestures (One/Two/Three Fingers) are NEVER forwarded as actions.
 """
 
 import json
@@ -37,6 +36,9 @@ STABILITY_FRAMES = 10          # consecutive frames same gesture required
 HOLD_SECONDS     = 1.0         # seconds the gesture must be held
 COOLDOWN_SECONDS = 1.5         # seconds before next mode switch allowed
 
+# Special sentinel stored in mode_switch map for cycling behaviour
+_NEXT_MODE = 'next_mode'
+
 
 class DecisionEngine:
     """
@@ -52,20 +54,19 @@ class DecisionEngine:
     # Built-in fallback mode maps (used if gesture_map.json is missing)
     _DEFAULT_MAPS: dict[str, dict[str, str]] = {
         'mode_switch': {
-            'One Finger':    'App Mode',
-            'Two Fingers':   'Media Mode',
-            'Three Fingers': 'System Mode',
+            'Three Fingers': 'next_mode',   # hold 1 s → cycle App→Media→System→App
         },
         'App Mode': {
-            'Thumbs Up':     'open_brave',
-            'Ring and Pinky':'open_apple_music',
-            'Pinky':         'volume_up',
+            'One Finger':    'open_brave',
+            'Two Fingers':   'open_apple_music',
+            'Ring and Pinky':'next_track',
+            'Pinky':         'prev_track',
         },
         'Media Mode': {
             'Ring and Pinky':'next_track',
             'Pinky':         'prev_track',
-            'Open Palm':     'play_pause',
-            'Thumbs Up':     'volume_up',
+            'Thumbs Up':     'play_pause',
+            'Two Fingers':   'volume_up',
         },
         'System Mode': {
             'Thumbs Up':     'volume_up',
@@ -166,17 +167,23 @@ class DecisionEngine:
         """
         Track hold stability for mode-switch gestures.
         Returns True when a mode switch is committed.
+
+        Value 'next_mode' cycles: App Mode → Media Mode → System Mode → App Mode.
         """
-        target_mode = self._mode_switch_map.get(gesture)
-        if target_mode == self.current_mode:
-            self._reset_stability()
-            return False
+        raw_target = self._mode_switch_map.get(gesture)
 
         now = time.time()
 
         # Cooldown guard
         if now - self._last_switch_time < COOLDOWN_SECONDS:
             return False
+
+        # Resolve cycling target
+        if raw_target == _NEXT_MODE:
+            idx = MODES.index(self.current_mode) if self.current_mode in MODES else 0
+            target_mode = MODES[(idx + 1) % len(MODES)]
+        else:
+            target_mode = raw_target
 
         # Reset if candidate changed
         if target_mode != self._candidate_mode:
