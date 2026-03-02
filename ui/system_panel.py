@@ -30,7 +30,7 @@ from __future__ import annotations
 
 from PyQt6.QtCore    import Qt, pyqtSlot
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel,
+    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel,
     QPushButton, QFrame, QProgressBar, QScrollArea,
     QSizePolicy, QSpacerItem,
 )
@@ -238,12 +238,14 @@ class ModeCard(QFrame):
         title_row.addWidget(self._mode_name)
         self._lay.addLayout(title_row)
 
-        # Instruction rows container
+        # Instruction rows container — uses QGridLayout so columns stay aligned
         self._instr_container = QWidget()
         self._instr_container.setStyleSheet('background: transparent;')
-        self._instr_lay = QVBoxLayout(self._instr_container)
+        self._instr_lay = QGridLayout(self._instr_container)
         self._instr_lay.setContentsMargins(0, 0, 0, 0)
         self._instr_lay.setSpacing(5)
+        self._instr_lay.setColumnStretch(0, 1)
+        self._instr_lay.setColumnStretch(1, 1)
         self._lay.addWidget(self._instr_container)
 
         self._lay.addWidget(_divider())
@@ -264,16 +266,36 @@ class ModeCard(QFrame):
 
     def _build_instructions(self, mode: str) -> None:
         """Rebuild the gesture instruction rows for the given mode."""
-        # Clear old rows
+        # Clear old cells
         while self._instr_lay.count():
             item = self._instr_lay.takeAt(0)
             if item.widget():
                 item.widget().deleteLater()
 
-        colour = _MODE_COLOUR.get(mode, ACCENT)
-        for gesture, action in _GESTURE_INSTRUCTIONS.get(mode, []):
-            row = _instr_row(gesture, action, TEXT_SEC, ACCENT)
-            self._instr_lay.addWidget(row)
+        instructions = _GESTURE_INSTRUCTIONS.get(mode, [])
+        for r, (gesture, action) in enumerate(instructions):
+            lbl_l = QLabel(gesture)
+            lbl_l.setStyleSheet(
+                f'color: {TEXT_SEC}; font-size: 12px; '
+                f'background: transparent; border: none;'
+            )
+            lbl_r = QLabel(action)
+            lbl_r.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            lbl_r.setStyleSheet(
+                f'color: {ACCENT}; font-size: 12px; font-weight: 600; '
+                f'background: transparent; border: none;'
+            )
+            self._instr_lay.addWidget(lbl_l, r, 0)
+            self._instr_lay.addWidget(lbl_r, r, 1)
+
+        # If no gestures, show a placeholder
+        if not instructions:
+            ph = QLabel('No gestures configured')
+            ph.setStyleSheet(
+                f'color: {TEXT_HINT}; font-size: 11px; font-style: italic; '
+                f'background: transparent; border: none;'
+            )
+            self._instr_lay.addWidget(ph, 0, 0, 1, 2)
 
     @pyqtSlot(str)
     def _on_mode_changed(self, mode: str) -> None:
