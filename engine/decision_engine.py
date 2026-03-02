@@ -1,98 +1,236 @@
 """
-engine/decision_engine.py - The Strategy Planner
+engine/decision_engine.py - Smart Mode Decision Engine
 
-Loads gesture-to-action mappings from config/gesture_map.json and
-resolves which computer action should be executed for a given gesture
-and handedness.
+Implements a 3-mode (App / Media / System) gesture action resolver.
 
-Default mapping
----------------
-Right hand  (app & media navigation):
-    One Finger    → open_brave
-    Two Fingers   → open_spotify
-    Ring and Pinky→ next_track
-    Pinky         → prev_track
+Mode Switching
+--------------
+Hold One Finger   → App Mode
+Hold Two Fingers  → Media Mode
+Hold Three Fingers→ System Mode
 
-Left hand  (audio & playback):
-    One Finger    → volume_up
-    Two Fingers   → volume_down
-    Three Fingers → mute
-    Pinky         → play_pause
+Requirements: 10-frame stability + 1-second hold, then 1.5-second cooldown
+before the next mode switch is allowed.
 
-Single-hand fallback: the detected hand uses its own map.
+Mode Action Mappings (from gesture_map.json)
+--------------------------------------------
+App Mode    : Thumbs Up → open_brave | Ring and Pinky → open_apple_music | Pinky → volume_up
+Media Mode  : Ring and Pinky → next_track | Pinky → prev_track | Open Palm → play_pause | Thumbs Up → volume_up
+System Mode : Thumbs Up → volume_up | Pinky → volume_down | Ring and Pinky → mute
+
+Mode-switch gestures (One/Two/Three Fingers) are NEVER forwarded as actions.
 """
 
 import json
+import time
 from pathlib import Path
+from datetime import datetime
+
+
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
+
+MODES            = ('App Mode', 'Media Mode', 'System Mode')
+DEFAULT_MODE     = 'App Mode'
+STABILITY_FRAMES = 10          # consecutive frames same gesture required
+HOLD_SECONDS     = 1.0         # seconds the gesture must be held
+COOLDOWN_SECONDS = 1.5         # seconds before next mode switch allowed
 
 
 class DecisionEngine:
-    """Maps gestures + handedness to action strings."""
+    """
+    Smart Mode gesture-to-action resolver.
 
-    # Built-in defaults (used if gesture_map.json is missing or incomplete)
-    _DEFAULT_RIGHT: dict[str, str] = {
-        'One Finger':     'open_brave',
-        'Two Fingers':    'open_apple_music',
-        'Ring and Pinky': 'next_track',
-        'Pinky':          'prev_track',
-    }
+    Usage
+    -----
+    engine = DecisionEngine()
+    # Per frame: feed the current gesture, get back (action | None, mode_changed)
+    action, mode_changed = engine.process(gesture)
+    """
 
-    _DEFAULT_LEFT: dict[str, str] = {
-        'One Finger':     'volume_up',
-        'Two Fingers':    'volume_down',
-        'Three Fingers':  'mute',
-        'Pinky':          'play_pause',
+    # Built-in fallback mode maps (used if gesture_map.json is missing)
+    _DEFAULT_MAPS: dict[str, dict[str, str]] = {
+        'mode_switch': {
+            'One Finger':    'App Mode',
+            'Two Fingers':   'Media Mode',
+            'Three Fingers': 'System Mode',
+        },
+        'App Mode': {
+            'Thumbs Up':     'open_brave',
+            'Ring and Pinky':'open_apple_music',
+            'Pinky':         'volume_up',
+        },
+        'Media Mode': {
+            'Ring and Pinky':'next_track',
+            'Pinky':         'prev_track',
+            'Open Palm':     'play_pause',
+            'Thumbs Up':     'volume_up',
+        },
+        'System Mode': {
+            'Thumbs Up':     'volume_up',
+            'Pinky':         'volume_down',
+            'Ring and Pinky':'mute',
+        },
     }
 
     def __init__(self, config_path: str | Path | None = None):
-        self._right_map: dict[str, str] = dict(self._DEFAULT_RIGHT)
-        self._left_map:  dict[str, str] = dict(self._DEFAULT_LEFT)
+        # Mode maps loaded from JSON
+        self._mode_switch_map: dict[str, str]            = {}
+        self._action_maps:     dict[str, dict[str, str]] = {}
 
-        # Resolve config path relative to project root
+        # Runtime state
+        self.current_mode: str = DEFAULT_MODE
+
+        # Mode-switch stability tracking
+        self._candidate_mode:   str | None = None
+        self._stable_count:     int        = 0
+        self._hold_start:       float      = 0.0
+        self._last_switch_time: float      = 0.0
+
+        # Resolve config path
         if config_path is None:
             config_path = Path(__file__).parent.parent / 'config' / 'gesture_map.json'
-
         self._load_map(Path(config_path))
 
     # ------------------------------------------------------------------
-    # Public API
+    # Primary public API
     # ------------------------------------------------------------------
 
-    def get_action(self, gesture: str, handedness: str = 'right') -> str | None:
+    def process(self, gesture: str | None) -> tuple[str | None, bool]:
         """
-        Return the action string for the given gesture and hand.
+        Process one frame's gesture.
+
+        Returns
+        -------
+        (action, mode_changed)
+            action       – action string to execute, or None
+            mode_changed – True if the mode just switched this frame
+        """
+        if gesture is None:
+            self._reset_stability()
+            return None, False
+
+        # --- Mode-switch path ---
+        if self.is_mode_switch(gesture):
+            mode_changed = self._update_mode_stability(gesture)
+            return None, mode_changed          # never an action for switch gestures
+
+        # --- Normal action path ---
+        self._reset_stability()
+        action = self.get_action(gesture, self.current_mode)
+        return action, False
+
+    def get_action(self, gesture: str, mode: str | None = None) -> str | None:
+        """
+        Look up the action for gesture in the given mode (defaults to current_mode).
 
         Args:
-            gesture:    Recognised gesture name (e.g. 'One Finger')
-            handedness: 'right' or 'left'
+            gesture: Recognised gesture name (e.g. 'Thumbs Up')
+            mode:    One of 'App Mode', 'Media Mode', 'System Mode', or None
 
         Returns:
-            Action string (e.g. 'volume_up') or None if no mapping exists.
+            Action string or None.
         """
-        if handedness == 'right':
-            return self._right_map.get(gesture)
+        target_mode = mode if mode is not None else self.current_mode
+        return self._action_maps.get(target_mode, {}).get(gesture)
+
+    def is_mode_switch(self, gesture: str) -> bool:
+        """Return True if gesture is a mode-switch gesture (1/2/3 fingers)."""
+        return gesture in self._mode_switch_map
+
+    def resolve_mode_switch(self, gesture: str) -> str | None:
+        """Return target mode for a mode-switch gesture, or None."""
+        return self._mode_switch_map.get(gesture)
+
+    @property
+    def mode_stability_progress(self) -> float:
+        """
+        0.0 – 1.0 progress toward triggering a mode switch.
+        Combines frame stability and hold time.
+        """
+        if self._candidate_mode is None:
+            return 0.0
+        frame_prog = min(self._stable_count / STABILITY_FRAMES, 1.0)
+        if self._hold_start > 0:
+            time_prog = min((time.time() - self._hold_start) / HOLD_SECONDS, 1.0)
         else:
-            return self._left_map.get(gesture)
+            time_prog = 0.0
+        return (frame_prog * 0.5 + time_prog * 0.5)
 
     # ------------------------------------------------------------------
-    # Internal helpers
+    # Mode-switch stability logic (private)
+    # ------------------------------------------------------------------
+
+    def _update_mode_stability(self, gesture: str) -> bool:
+        """
+        Track hold stability for mode-switch gestures.
+        Returns True when a mode switch is committed.
+        """
+        target_mode = self._mode_switch_map.get(gesture)
+        if target_mode == self.current_mode:
+            self._reset_stability()
+            return False
+
+        now = time.time()
+
+        # Cooldown guard
+        if now - self._last_switch_time < COOLDOWN_SECONDS:
+            return False
+
+        # Reset if candidate changed
+        if target_mode != self._candidate_mode:
+            self._candidate_mode = target_mode
+            self._stable_count   = 1
+            self._hold_start     = now
+            return False
+
+        self._stable_count += 1
+
+        # Check both stability AND hold duration
+        if (self._stable_count >= STABILITY_FRAMES
+                and (now - self._hold_start) >= HOLD_SECONDS):
+            old_mode = self.current_mode
+            self.current_mode        = target_mode
+            self._last_switch_time   = now
+            ts = datetime.now().strftime('%H:%M:%S')
+            print(f'[DecisionEngine] [{ts}] Mode Changed  {old_mode} → {target_mode}')
+            self._reset_stability()
+            return True
+
+        return False
+
+    def _reset_stability(self) -> None:
+        self._candidate_mode = None
+        self._stable_count   = 0
+        self._hold_start     = 0.0
+
+    # ------------------------------------------------------------------
+    # Config loading (private)
     # ------------------------------------------------------------------
 
     def _load_map(self, path: Path) -> None:
-        """Merge mappings from gesture_map.json, overriding defaults."""
+        """Load Smart Mode mappings from gesture_map.json."""
+        data: dict = {}
         try:
             with open(path, 'r', encoding='utf-8') as fh:
-                data: dict = json.load(fh)
-
-            if 'right' in data:
-                self._right_map.update(data['right'])
-            if 'left' in data:
-                self._left_map.update(data['left'])
-
+                data = json.load(fh)
             print(f'[DecisionEngine] Loaded gesture map from {path}')
         except FileNotFoundError:
-            print(f'[DecisionEngine] gesture_map.json not found at {path} — using defaults')
+            print(f'[DecisionEngine] gesture_map.json not found — using built-in defaults')
         except (json.JSONDecodeError, KeyError) as exc:
             print(f'[DecisionEngine] Warning: could not parse gesture map: {exc} — using defaults')
         except Exception as exc:
             print(f'[DecisionEngine] Warning: {exc} — using defaults')
+
+        defaults = self._DEFAULT_MAPS
+
+        self._mode_switch_map = {
+            **defaults['mode_switch'],
+            **data.get('mode_switch', {}),
+        }
+        for mode in MODES:
+            self._action_maps[mode] = {
+                **defaults.get(mode, {}),
+                **data.get(mode, {}),
+            }
