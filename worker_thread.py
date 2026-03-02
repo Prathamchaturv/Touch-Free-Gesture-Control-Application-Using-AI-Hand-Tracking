@@ -35,7 +35,6 @@ from core.gesture_classifier  import GestureClassifier
 from engine.activation_manager import ActivationManager
 from engine.decision_engine    import DecisionEngine
 from engine.action_executor    import ActionExecutor
-from engine.system_mode_engine import SystemModeEngine
 from utils.fps_counter         import FPSCounter
 from utils.config              import Config
 from shared_state              import SharedState
@@ -62,8 +61,7 @@ def _ts() -> str:
 
 
 def _draw_overlay(frame, gesture: str | None, mode: str,
-                  is_active: bool, fps: float,
-                  sub_mode: str = 'IDLE') -> None:
+                  is_active: bool, fps: float) -> None:
     """Annotate frame in-place with gesture/mode/state HUD."""
     h, w = frame.shape[:2]
 
@@ -79,31 +77,19 @@ def _draw_overlay(frame, gesture: str | None, mode: str,
     cv2.putText(frame, state_text, (38, 36),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, state_color, 2)
 
-    # Mode — include sub-mode when in System Mode
-    mc        = _MODE_COLOURS.get(mode, _ACCENT)
-    mode_text = mode.upper()
-    if mode == 'System Mode' and sub_mode != 'IDLE':
-        mode_text = f'SYSTEM – {sub_mode}'
-    cv2.putText(frame, mode_text, (w // 2 - 80, 36),
+    # Mode
+    mc = _MODE_COLOURS.get(mode, _ACCENT)
+    cv2.putText(frame, mode.upper(), (w // 2 - 70, 36),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.65, mc, 2)
 
     # FPS
     cv2.putText(frame, f'FPS {fps:.0f}', (w - 90, 36),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.55, _WHITE, 1)
 
-    # Gesture label (bottom-left)
+    # Gesture label
     if gesture:
         cv2.putText(frame, gesture, (16, h - 20),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.8, _ACCENT, 2)
-
-    # Sub-mode badge for System Mode (bottom bar)
-    if mode == 'System Mode' and sub_mode != 'IDLE':
-        badge_color = (120, 100, 255) if sub_mode == 'CURSOR' else (0, 200, 100)
-        cv2.rectangle(frame, (0, h - 44), (w, h), (20, 20, 30, 180), -1)
-        cv2.putText(frame, f'MODE SWITCH HOLD', (16, h - 26),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.45, (120, 120, 120), 1)
-        cv2.putText(frame, f'{sub_mode} ACTIVE', (w - 150, h - 26),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.55, badge_color, 2)
 
 
 def _frame_to_qimage(frame) -> QImage:
@@ -177,8 +163,6 @@ class WorkerThread(QThread):
 
             decision_engine = DecisionEngine()
 
-            system_engine = SystemModeEngine()
-
             action_executor = ActionExecutor(config={
                 'brave_path':        config.get('apps.brave_path'),
                 'apple_music_aumid': config.get('apps.apple_music_aumid'),
@@ -244,33 +228,6 @@ class WorkerThread(QThread):
                 state.set_cooldown(activation_manager.is_in_cooldown)
 
                 # ----------------------------------------------------------
-                # System Mode engine  (Air Mouse + Air Writing)
-                # ----------------------------------------------------------
-                if (activation_manager.is_active
-                        and decision_engine.current_mode == 'System Mode'):
-                    landmarks = hand_data['landmarks'] if hand_data else []
-                    sys_result = system_engine.update(landmarks, gesture)
-
-                    if sys_result.state_changed:
-                        state.set_sub_mode(sys_result.new_state)
-                        if sys_result.log_message:
-                            state.emit_log(_ts(), 'SYSTEM MODE', sys_result.log_message)
-
-                    if sys_result.stroke_point is not None:
-                        nx, ny, ns = sys_result.stroke_point
-                        state.emit_stroke_point(nx, ny, ns)
-
-                    if sys_result.clear_canvas:
-                        state.emit_canvas_clear()
-                        if sys_result.log_message:
-                            state.emit_log(_ts(), 'SYSTEM MODE', sys_result.log_message)
-                else:
-                    # Reset engine + clear sub-mode when outside System Mode
-                    if system_engine.state != 'IDLE':
-                        system_engine.reset()
-                        state.set_sub_mode('IDLE')
-
-                # ----------------------------------------------------------
                 # Execute action
                 # ----------------------------------------------------------
                 if should_execute and action:
@@ -299,7 +256,6 @@ class WorkerThread(QThread):
                     decision_engine.current_mode,
                     activation_manager.is_active,
                     fps_counter.fps,
-                    sub_mode=system_engine.state,
                 )
 
                 self.frame_ready.emit(_frame_to_qimage(frame))

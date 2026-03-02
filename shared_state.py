@@ -33,11 +33,6 @@ class SharedState(QObject):
     in_cooldown   : bool          – True while action/mode cooldown is active
     volume_level  : int           – 0–100 system volume estimate
     mode_stability: float         – 0.0–1.0 mode-switch hold progress
-
-    # System Mode specific
-    sub_mode      : str           – 'IDLE' | 'CURSOR' | 'WRITING' (System Mode only)
-    cursor_active : bool          – True while Air Mouse cursor mode is running
-    writing_active: bool          – True while Air Writing mode is running
     """
 
     # ------------------------------------------------------------------ signals
@@ -50,16 +45,6 @@ class SharedState(QObject):
     cooldown_changed        = pyqtSignal(bool)
     volume_changed          = pyqtSignal(int)
     mode_stability_changed  = pyqtSignal(float)
-
-    # System Mode sub-mode signals
-    sub_mode_changed        = pyqtSignal(str)    # 'IDLE' | 'CURSOR' | 'WRITING'
-    cursor_active_changed   = pyqtSignal(bool)
-    writing_active_changed  = pyqtSignal(bool)
-
-    # Writing overlay signals (main-thread safe, wired directly to WritingOverlay)
-    stroke_added            = pyqtSignal(float, float, bool)  # norm_x, norm_y, new_stroke
-    canvas_cleared          = pyqtSignal()                    # erase all strokes
-    overlay_visible         = pyqtSignal(bool)                # show/hide overlay
 
     # Batched update – emits a snapshot dict for panels that want everything
     snapshot_ready          = pyqtSignal(dict)
@@ -79,10 +64,6 @@ class SharedState(QObject):
         self._in_cooldown      = False
         self._volume_level     = 50
         self._mode_stability   = 0.0
-        # System Mode sub-state
-        self._sub_mode         = 'IDLE'
-        self._cursor_active    = False
-        self._writing_active   = False
 
     # ------------------------------------------------------------------ getters
     @property
@@ -103,12 +84,6 @@ class SharedState(QObject):
     def volume_level(self)    -> int:   return self._volume_level
     @property
     def mode_stability(self)  -> float: return self._mode_stability
-    @property
-    def sub_mode(self)        -> str:   return self._sub_mode
-    @property
-    def cursor_active(self)   -> bool:  return self._cursor_active
-    @property
-    def writing_active(self)  -> bool:  return self._writing_active
 
     # ------------------------------------------------------------------ setters
     def set_system_active(self, value: bool) -> None:
@@ -155,30 +130,6 @@ class SharedState(QObject):
         self._mode_stability = round(max(0.0, min(1.0, value)), 3)
         self.mode_stability_changed.emit(self._mode_stability)
 
-    def set_sub_mode(self, value: str) -> None:
-        """Set System Mode sub-mode: 'IDLE' | 'CURSOR' | 'WRITING'."""
-        if self._sub_mode != value:
-            self._sub_mode = value
-            self.sub_mode_changed.emit(value)
-            cursor  = (value == 'CURSOR')
-            writing = (value == 'WRITING')
-            if self._cursor_active != cursor:
-                self._cursor_active = cursor
-                self.cursor_active_changed.emit(cursor)
-            if self._writing_active != writing:
-                self._writing_active = writing
-                self.writing_active_changed.emit(writing)
-            # Show overlay only in Writing mode
-            self.overlay_visible.emit(writing)
-
-    def emit_stroke_point(self, norm_x: float, norm_y: float, new_stroke: bool) -> None:
-        """Forward a writing stroke point to the overlay."""
-        self.stroke_added.emit(norm_x, norm_y, new_stroke)
-
-    def emit_canvas_clear(self) -> None:
-        """Tell the overlay to erase all strokes."""
-        self.canvas_cleared.emit()
-
     def emit_log(self, timestamp: str, category: str, description: str) -> None:
         """Convenience wrapper to push an activity log event."""
         self.log_event.emit(timestamp, category, description)
@@ -196,9 +147,6 @@ class SharedState(QObject):
             'in_cooldown':    self._in_cooldown,
             'volume_level':   self._volume_level,
             'mode_stability': self._mode_stability,
-            'sub_mode':       self._sub_mode,
-            'cursor_active':  self._cursor_active,
-            'writing_active': self._writing_active,
         }
 
     def _emit_snapshot(self) -> None:

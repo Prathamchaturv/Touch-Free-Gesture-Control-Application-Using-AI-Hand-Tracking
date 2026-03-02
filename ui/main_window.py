@@ -35,7 +35,6 @@ from ui.sidebar       import Sidebar
 from ui.vision_panel  import VisionPanel
 from ui.system_panel  import SystemPanel
 from ui.activity_log  import ActivityLog
-from ui.writing_overlay import WritingOverlay
 
 
 class MainWindow(QMainWindow):
@@ -96,14 +95,6 @@ class MainWindow(QMainWindow):
         # ── Activity log ──────────────────────────────────
         self._activity = ActivityLog(self._state)
         root.addWidget(self._activity)
-
-        # Writing overlay — transparent full-screen canvas for Air Writing
-        # Created here (main thread) so Qt widget lifetime is correct.
-        self._writing_overlay = WritingOverlay()
-        # Wire SharedState → overlay
-        self._state.stroke_added.connect(self._writing_overlay.on_stroke_point)
-        self._state.canvas_cleared.connect(self._writing_overlay.on_clear_canvas)
-        self._state.overlay_visible.connect(self._writing_overlay.on_set_visible)
 
     def _build_header(self) -> QWidget:
         header = QWidget()

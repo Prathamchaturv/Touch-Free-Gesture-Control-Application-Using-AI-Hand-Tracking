@@ -59,11 +59,7 @@ _GESTURE_INSTRUCTIONS: dict[str, list[tuple[str, str]]] = {
         ('4 Fingers',   'Play / Pause'),
         ('Thumbs Up',   'Mute / Unmute'),
     ],
-    'System Mode': [
-        ('Thumb + Index  (hold)', 'Cursor Mode'),
-        ('Thumb + Middle (hold)', 'Writing Mode'),
-        ('Open Palm  1.5 s',     'Clear Canvas'),
-    ],
+    'System Mode': [],
 }
 
 # Mode-switch instructions (always shown at bottom)
@@ -213,7 +209,6 @@ class ModeCard(QFrame):
         self._state = state
         self._build()
         state.mode_changed.connect(self._on_mode_changed)
-        state.sub_mode_changed.connect(self._on_sub_mode_changed)
 
     def _build(self) -> None:
         self.setObjectName('card')
@@ -269,17 +264,6 @@ class ModeCard(QFrame):
         # Build default (App Mode)
         self._build_instructions('App Mode')
 
-        # Sub-mode badge — shown only in System Mode when CURSOR/WRITING is active
-        self._lay.addWidget(_divider())
-        self._sub_badge = QLabel('')
-        self._sub_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._sub_badge.setStyleSheet(
-            f'color: {TEXT_HINT}; font-size: 11px; font-weight: 600; '
-            f'background: transparent; border: none; padding: 2px 0;'
-        )
-        self._sub_badge.setVisible(False)
-        self._lay.addWidget(self._sub_badge)
-
     def _build_instructions(self, mode: str) -> None:
         """Rebuild the gesture instruction rows for the given mode."""
         # Clear old cells
@@ -325,32 +309,7 @@ class ModeCard(QFrame):
             f'background: transparent; border: none;'
         )
         self._build_instructions(mode)
-        # Hide sub-badge when leaving System Mode
-        if mode != 'System Mode':
-            self._sub_badge.setVisible(False)
 
-    @pyqtSlot(str)
-    def _on_sub_mode_changed(self, sub_mode: str) -> None:
-        """Update the sub-mode badge when Air Mouse / Air Writing state changes."""
-        _CURSOR_COLOR  = '#7864FF'   # violet
-        _WRITING_COLOR = '#00FF88'   # green
-
-        if sub_mode == 'CURSOR':
-            self._sub_badge.setText('●  CURSOR ACTIVE')
-            self._sub_badge.setStyleSheet(
-                f'color: {_CURSOR_COLOR}; font-size: 11px; font-weight: 700; '
-                f'background: transparent; border: none; padding: 2px 0;'
-            )
-            self._sub_badge.setVisible(True)
-        elif sub_mode == 'WRITING':
-            self._sub_badge.setText('●  WRITING ACTIVE')
-            self._sub_badge.setStyleSheet(
-                f'color: {_WRITING_COLOR}; font-size: 11px; font-weight: 700; '
-                f'background: transparent; border: none; padding: 2px 0;'
-            )
-            self._sub_badge.setVisible(True)
-        else:   # IDLE
-            self._sub_badge.setVisible(False)
 
 
 def _instr_row(left: str, right: str, left_colour: str, right_colour: str) -> QWidget:
