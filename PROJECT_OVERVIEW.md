@@ -432,6 +432,16 @@ While not currently implemented, the modular architecture makes these additions 
 | **FPSCounter** | utils/fps_counter.py | Performance monitoring |
 | **Config** | utils/config.py | Settings management |
 | **gesture_map.json** | config/ | Gesture-to-action mappings |
+| ★ **MainWindow** | ui/main_window.py | Dashboard shell |
+| ★ **Sidebar** | ui/sidebar.py | Collapsible navigation |
+| ★ **VisionPanel** | ui/vision_panel.py | Live camera card |
+| ★ **StatusPanel** | ui/status_panel.py | System/Mode/Perf cards |
+| ★ **ActivityTimeline** | ui/activity_timeline.py | Scrollable log bar |
+| ★ **StateManager** | ui/state_manager.py | Observable shared state |
+| ★ **MMGIWorkerThread** | ui/mmgi_thread.py | Core ↔ UI bridge |
+| ★ **SimulatorThread** | ui/simulator.py | Fake-data demo thread |
+| ★ **styles.py** | ui/styles.py | Full QSS dark theme |
+| ★ **run_ui.py** | Root | Dashboard entry point |
 
 ---
 
@@ -444,6 +454,104 @@ MMGI is a **complete gesture recognition system** that transforms hand movements
 - **Rich visual feedback** (always know what's happening)
 - **Two-hand support** (independent left/right control)
 - **Production quality** (proper error handling, cleanup, configuration)
+- **Premium AI Dashboard** (Phase 7 — professional PyQt6 interface)
+
+---
+
+## 🖥️ Phase 7 — Premium PyQt6 Dashboard Architecture
+
+### Overview
+
+Phase 7 adds a full professional desktop interface built with PyQt6.  
+The UI lives entirely in the `ui/` package and **never touches gesture-detection logic directly**.
+
+```
+Data flow:
+  Camera → HandTracker → GestureClassifier → ActivationManager
+                ↓
+          MMGIWorkerThread   ←── background QThread
+                ↓  (Qt signals — thread-safe)
+          StateManager       ←── central observable state
+                ↓  (state_updated signal)
+   VisionPanel │ StatusPanel │ ActivityTimeline │ HeaderBar
+```
+
+### ui/state_manager.py — The Shared Brain
+
+A `QObject` that holds **all live runtime data**:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `current_gesture` | str | Name of the detected gesture |
+| `confidence` | float 0–1 | Stability fraction |
+| `system_status` | str | INACTIVE / ACTIVATING / ACTIVE |
+| `mode` | str | Current operating mode label |
+| `latency_ms` | float | Per-frame processing time |
+| `fps` | float | Rolling average frames-per-second |
+| `accuracy_pct` | float | Detection accuracy percentage |
+| `stability_pct` | float | Gesture stability 0–100 |
+| `log_events` | list[LogEvent] | History of executed actions |
+
+All UI panels connect to `state_updated` signal — one signal drives the entire dashboard refresh.
+
+### ui/main_window.py — Dashboard Shell
+
+`MainWindow` is the top-level `QMainWindow`.  It:
+- Creates and owns the `StateManager`
+- Starts either `MMGIWorkerThread` (real camera) or `SimulatorThread` (demo)
+- Wires all signals to their respective panels
+- Handles clean shutdown via `closeEvent`
+
+### ui/sidebar.py — Animated Navigation
+
+Collapsible left panel with 5 nav sections.
+- Expands to 200 px / collapses to 60 px via `QPropertyAnimation`
+- Each `NavButton` highlights on hover and shows a left-border accent when selected
+- Tooltip shown for each button when collapsed
+
+### ui/vision_panel.py — Live Camera Card
+
+Centre panel showing the real-time annotated camera feed:
+- `StatusDot` — pulsing `QPainter`-drawn dot driven by a 25 fps `QTimer`
+- `OverlayBar` — semi-transparent bar pinned to the bottom of the feed showing: Gesture / Confidence / Mode / Status
+- `QProgressBar` (stabilityBar) at the bottom of the card
+- Glowing neon border (`QGraphicsDropShadowEffect`) when system is `ACTIVE`
+- `update_frame(QImage)` slot receives camera frames from the worker thread
+
+### ui/status_panel.py — Right Status Cards
+
+Three stacked `QFrame` cards (260 px fixed width):
+- **SystemCard** — status badge (colour-coded), latency metric, cooldown progress bar
+- **ModeCard** — current mode with gesture→action mini-map preview
+- **PerformanceCard** — FPS / Accuracy / Execution Rate each with a mini progress bar
+
+### ui/activity_timeline.py — Log Feed
+
+Fixed-height (70 px) horizontal scroll area at the bottom:
+- Each `LogPill` widget fades in via `QGraphicsOpacityEffect` + `QPropertyAnimation`
+- Pills glow with neon border on hover
+- Auto-scrolls to the latest entry
+- Capped at 60 pills to avoid memory growth
+
+### ui/mmgi_thread.py — Real Pipeline Bridge
+
+`QThread` subclass that runs the full MMGI pipeline (Camera → HandTracker → GestureClassifier → ActivationManager → DecisionEngine → ActionExecutor) without blocking the UI.  
+Emits `frame_ready`, `state_changed`, `log_event` signals.
+
+### ui/simulator.py — Demo Mode
+
+`SimulatorThread` generates synthetic camera frames and state data at ~30 fps using `QPainter` — no hardware needed.  
+Start the dashboard with `python run_ui.py --simulate`.
+
+### ui/styles.py — QSS Stylesheet
+
+Single source of truth for all colours and widget styles:
+- Background deep: `#0F0F14`
+- Card surface: `#1A1A22`
+- Neon accent: `#00E5FF`
+- Active green: `#00FF88`
+- Inactive red: `#FF4466`
+- 15 px rounded corners, Segoe UI font, smooth scrollbars
 
 The result is a **safe, reliable, and performant** system that gives you touchless control over your Windows computer using nothing but hand gestures captured through your webcam.
 
