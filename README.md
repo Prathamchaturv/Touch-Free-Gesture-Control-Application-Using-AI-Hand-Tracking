@@ -1,6 +1,6 @@
 # MMGI - Multi-Modal Gesture Intelligence
 
-## Phase 7: Premium PyQt6 AI Dashboard Interface
+## Phase 6: Windows Control Integration
 
 A comprehensive hand gesture recognition system using MediaPipe and OpenCV that maps hand gestures to real-world system actions, enabling touchless control of applications and media playback.
 
@@ -41,19 +41,6 @@ A comprehensive hand gesture recognition system using MediaPipe and OpenCV that 
 - ⚡ Gesture-to-action mapping
 - 🛡️ Safe execution with activation check
 - 📊 Maintains ~30 FPS performance
-
-### Phase 7: Premium PyQt6 AI Dashboard (NEW)
-- 🎨 Modern dark-theme AI control panel (no more OpenCV window)
-- 📐 Split-dashboard layout — sidebar + live vision + status cards + activity log
-- ✨ Neon-blue accent design (`#00E5FF`) with glass-style cards
-- ⚡ Animated pulsing status dot (green = ACTIVE, red = INACTIVE)
-- 📺 Live camera feed rendered inside the UI with gesture overlay
-- 💫 Collapsible animated sidebar (expand ↔ collapse with smooth transition)
-- 📊 Real-time status cards: System / Mode / Performance
-- 🗓️ Scrollable horizontal activity timeline with fade-in log pills
-- 🔁 Fake-data simulator for UI testing without a camera
-- 🧵 `QThread`-based worker — UI never blocks
-- 🏗️ Clean separation: `ui/` package never touches gesture logic
 
 ---
 
@@ -142,23 +129,9 @@ class ActionExecutor:
 
 ### Step 6: Run the Application
 
-**Classic headless mode** (OpenCV window, Phase 6 pipeline):
-
 ```powershell
 python main.py
 ```
-
-**Premium Dashboard UI** (Phase 7 — recommended):
-
-```powershell
-# Demo mode — no camera needed, built-in fake-data simulator:
-python run_ui.py --simulate
-
-# Live mode — real camera + full MMGI pipeline:
-python run_ui.py
-```
-
-> **Tip**: Always try `--simulate` first to verify the UI renders correctly before connecting to the real camera pipeline.
 
 ---
 
@@ -283,23 +256,10 @@ pip install -r requirements.txt
 ```
 MMGI/
 │
-├── run_ui.py                    # ★ Phase 7 — Dashboard entry point
-├── main.py                      # Classic headless pipeline entry point
-├── requirements.txt             # Python dependencies (now includes PyQt6)
+├── main.py                      # Main application script (Phase 6)
+├── requirements.txt             # Python dependencies (includes pyautogui)
 ├── README.md                    # This file
 ├── PROJECT_OVERVIEW.md          # Architecture deep-dive
-│
-├── ui/                          # ★ Phase 7 — Premium PyQt6 UI package
-│   ├── __init__.py
-│   ├── main_window.py           # QMainWindow — assembles all panels
-│   ├── sidebar.py               # Animated collapsible navigation sidebar
-│   ├── vision_panel.py          # Live camera feed + overlay labels
-│   ├── status_panel.py          # System / Mode / Performance cards
-│   ├── activity_timeline.py     # Scrollable horizontal log timeline
-│   ├── state_manager.py         # Shared observable state (Qt signals)
-│   ├── mmgi_thread.py           # QThread wrapping full MMGI pipeline
-│   ├── simulator.py             # Fake-data simulator (no camera needed)
-│   └── styles.py                # Complete QSS dark-theme stylesheet
 │
 ├── core/                        # Hand tracking & gesture classification
 │   ├── camera.py
@@ -377,35 +337,11 @@ self.spotify_path = r"C:\Users\%USERNAME%\AppData\Roaming\Spotify\Spotify.exe"
 - ✅ Phase 3: Static gesture recognition (8 gestures)
 - ✅ Phase 4: Activation and stability system
 - ✅ Phase 6: Windows control integration (app launching + media control)
-- ✅ Phase 7: Premium PyQt6 AI dashboard interface
-
----
-
-## 🎨 Phase 7 — Dashboard Integration Guide
-
-### Connecting the UI to the existing MMGI core
-
-The dashboard communicates with the existing core through a thin `QThread` bridge (`ui/mmgi_thread.py`).  
-**Zero changes** are needed in any `core/` or `engine/` file.
-
-| Signal | From | To | Purpose |
-|---|---|---|---|
-| `frame_ready(QImage)` | worker thread | `VisionPanel` | Live camera feed |
-| `state_changed(dict)` | worker thread | `StateManager` | All live metrics |
-| `log_event(ts, gest, action)` | worker thread | `StateManager` | Activity timeline |
-
-### Adding a new gesture mapping to the UI
-
-1. Edit `config/gesture_map.json` — no Python changes required.
-2. The `ModeCard` preview table in `ui/status_panel.py` → `ModeCard._PREVIEW` can be extended.
-
-### Custom mode display
-
-Override `state.update(mode="CUSTOM MODE")` from the worker thread.
 
 ## 🚀 Future Enhancements
 
-- Phase 7+: Window management (minimize, maximize, close)
+- Phase 7: Premium desktop UI (PyQt6 dashboard)
+- Window management (minimize, maximize, close)
 - Virtual desktop switching
 - Screenshot capture on gesture
 - Smart home integration (lights, plugs)
