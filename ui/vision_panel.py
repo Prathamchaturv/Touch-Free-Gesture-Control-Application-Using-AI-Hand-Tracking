@@ -190,6 +190,7 @@ class VisionPanel(QFrame):
         self._feed_label.setText("⊙  Camera feed not started\n\nRun with  --simulate  for demo mode")
         self._feed_label.setSizePolicy(QSizePolicy.Policy.Expanding,
                                        QSizePolicy.Policy.Expanding)
+        self._feed_label.setMinimumSize(320, 240)
 
         # Overlay sits on top — put both in a container
         feed_container = QWidget()
@@ -248,12 +249,13 @@ class VisionPanel(QFrame):
     def update_frame(self, image: QImage) -> None:
         """Push a new camera frame (called from worker thread via signal)."""
         pix = QPixmap.fromImage(image)
-        self._feed_label.setPixmap(
-            pix.scaled(self._feed_label.width(),
-                       self._feed_label.height(),
-                       Qt.AspectRatioMode.KeepAspectRatio,
-                       Qt.TransformationMode.SmoothTransformation)
-        )
+        w = self._feed_label.width()
+        h = self._feed_label.height()
+        if w > 0 and h > 0:
+            pix = pix.scaled(w, h,
+                             Qt.AspectRatioMode.KeepAspectRatio,
+                             Qt.TransformationMode.SmoothTransformation)
+        self._feed_label.setPixmap(pix)
 
     # ── State refresh ─────────────────────────────────────────────────
 
