@@ -50,22 +50,16 @@ _MODE_COLOUR = {
 # Gesture → human label mapping (per mode)
 _GESTURE_INSTRUCTIONS: dict[str, list[tuple[str, str]]] = {
     'App Mode': [
-        ('One Finger',    'Open Browser'),
-        ('Two Fingers',   'Open Music'),
-        ('Ring + Pinky',  'Next Track'),
-        ('Pinky',         'Prev Track'),
+        ('One Finger',  'Open Browser'),
+        ('Two Fingers', 'Open Music'),
     ],
     'Media Mode': [
-        ('Ring + Pinky',  'Next Track'),
-        ('Pinky',         'Prev Track'),
-        ('Thumbs Up',     'Play / Pause'),
-        ('Two Fingers',   'Volume Up'),
+        ('One Finger',  'Volume Up'),
+        ('Two Fingers', 'Volume Down'),
+        ('4 Fingers',   'Play / Pause'),
+        ('Thumbs Up',   'Mute / Unmute'),
     ],
-    'System Mode': [
-        ('Thumbs Up',     'Volume Up'),
-        ('Pinky',         'Volume Down'),
-        ('Ring + Pinky',  'Mute'),
-    ],
+    'System Mode': [],
 }
 
 # Mode-switch instructions (always shown at bottom)
