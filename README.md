@@ -253,32 +253,16 @@ remap gestures. Each mode section is a flat `"GestureName": "action_key"` dict.
 
 ## 6 · Screenshots
 
-> **Add screenshots to `assets/` and update the paths below.**
-
 ### Dashboard — App Mode (Inactive)
 
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│  ◉ MMGI    Smart Mode AI Controller              APP MODE  ⬤ INACTIVE  │
-├──────────┬──────────────────────────────────────┬───────────────────── │
-│          │                                      │  SYSTEM              │
-│ [Vision] │         Live Camera Feed             │  ● OFF  [Activate]   │
-│ [Mode]   │     (MediaPipe hand skeleton         │                      │
-│          │      overlay + gesture label)        │  MODE                │
-│ ◄ Collapse│                                     │  ◈ App Mode          │
-│          │  ████████░░░░░░░░  Stability Bar     │  One Finger → Browser│
-│          │                                      │  Two Fingers → Music │
-│          │                                      │                      │
-│          │                                      │  PERFORMANCE         │
-│          │                                      │  FPS  ▓▓▓▓▓  28.4   │
-│          │                                      │  Latency      18 ms  │
-├──────────┴──────────────────────────────────────┴──────────────────────│
-│  ● [12:04:11]  SYSTEM  Initialised  ·  ● [12:04:15]  MODE  App Mode    │
-└────────────────────────────────────────────────────────────────────────┘
-```
+![MMGI Dashboard UI](assets/ui_preview.png)
 
-> Place actual screenshots at `assets/screenshot_app_mode.png` and
-> `assets/screenshot_system_mode.png`.
+**UI Layout:**
+- **Top bar** — mode pill (APP MODE) and system status indicator (INACTIVE)
+- **Left sidebar** — Vision / Mode navigation tabs with collapse toggle
+- **Centre panel** — live camera feed with in-frame status overlay (mode, FPS, activation state) and mode-switch stability bar at the bottom
+- **Right panel** — System section (activate/deactivate button), Mode section (current mode + gesture→action mapping, switch trigger), Performance section (FPS, latency, volume slider, confidence bar)
+- **Bottom bar** — Activity Log with timestamped event pills
 
 ---
 
