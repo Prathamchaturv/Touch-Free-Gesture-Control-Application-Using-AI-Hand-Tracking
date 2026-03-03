@@ -109,3 +109,29 @@ class GestureClassifier:
             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2, cv2.LINE_AA,
         )
         return frame
+
+
+# ---------------------------------------------------------------------------
+# Module-level convenience wrapper (used by simple tests and external callers)
+# ---------------------------------------------------------------------------
+
+_FINGER_KEYS = ('thumb', 'index', 'middle', 'ring', 'pinky')
+_clf = GestureClassifier()
+
+
+def classify_gesture(fingers) -> str:
+    """
+    Classify a gesture from a 5-element sequence or dict of finger states.
+
+    Args:
+        fingers: A list/tuple of 5 bool/int values ordered
+                 [thumb, index, middle, ring, pinky]  (1 = extended, 0 = curled)
+                 -OR- a dict already in {'thumb': bool, ...} format.
+
+    Returns:
+        Gesture name string, e.g. 'Open Palm', 'Fist', 'Thumbs Up'.
+    """
+    if isinstance(fingers, dict):
+        return _clf.classify(fingers)
+    states = {key: bool(val) for key, val in zip(_FINGER_KEYS, fingers)}
+    return _clf.classify(states)
