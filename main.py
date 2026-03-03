@@ -1,6 +1,10 @@
 """
+Module: main.py
+Description: Entry-point dispatcher for MMGI — launches the PyQt6 dashboard
+             (default) or the headless OpenCV pipeline (--headless flag).
+Author: Pratham Chaturvedi
+
 MMGI - Multi-Modal Gesture Intelligence
-Production-Level Modular Architecture
 
 Entry-point dispatcher
 ──────────────────────

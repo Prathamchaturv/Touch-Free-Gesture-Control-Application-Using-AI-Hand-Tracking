@@ -1,4 +1,10 @@
 """
+Module: ui.py
+Description: Consolidated PyQt6 dashboard — contains the QSS stylesheet,
+             ActivityLog, Sidebar, VisionPanel, SystemPanel and MainWindow;
+             wires all panels to SharedState signals for live updates.
+Author: Pratham Chaturvedi
+
 ui/ui.py - MMGI PyQt6 Dashboard (consolidated UI module)
 
 Contains all UI components:

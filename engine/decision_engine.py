@@ -1,4 +1,10 @@
 """
+Module: decision_engine.py
+Description: Smart Mode state machine — manages the 3-mode cycle
+             (App / Media / System), resolves gestures to action strings,
+             and enforces the stability-gate hold for mode switching.
+Author: Pratham Chaturvedi
+
 engine/decision_engine.py - Smart Mode Decision Engine
 
 Implements a 3-mode (App / Media / System) gesture action resolver.

@@ -1,4 +1,10 @@
 """
+Module: gesture_classifier.py
+Description: Handles rule-based gesture classification logic — maps a 5-finger
+             state vector to a named gesture (Open Palm, Fist, Thumbs Up, etc.)
+             using an ordered pattern-matching table.
+Author: Pratham Chaturvedi
+
 core/gesture_classifier.py - The Pattern Recognizer
 
 Takes finger-state information (which fingers are up/down) from the hand

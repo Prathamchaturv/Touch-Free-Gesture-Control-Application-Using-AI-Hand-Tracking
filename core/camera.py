@@ -1,4 +1,9 @@
 """
+Module: camera.py
+Description: Webcam lifecycle manager — opens, configures and reads frames
+             from the system camera using OpenCV VideoCapture.
+Author: Pratham Chaturvedi
+
 core/camera.py - The Eyes
 
 Opens and manages the laptop webcam. Captures video frames continuously

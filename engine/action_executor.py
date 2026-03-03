@@ -1,4 +1,10 @@
 """
+Module: action_executor.py
+Description: Executes system actions resolved by the DecisionEngine — launches
+             applications, sends media/volume keyboard events via pyautogui,
+             and logs each action with a human-readable label.
+Author: Pratham Chaturvedi
+
 engine/action_executor.py - The Action Performer
 
 Actually executes computer actions based on the gesture resolved by

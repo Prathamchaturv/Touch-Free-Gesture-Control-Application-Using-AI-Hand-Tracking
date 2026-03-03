@@ -1,4 +1,10 @@
 """
+Module: worker_thread.py
+Description: Background QThread that owns the full per-frame gesture pipeline
+             — reads camera frames, runs AI inference, resolves actions, drives
+             the Air Mouse, and emits QImage frames to the dashboard.
+Author: Pratham Chaturvedi
+
 ui/worker_thread.py - MMGI Pipeline Worker (QThread)
 
 Runs the full gesture recognition pipeline in a background thread and

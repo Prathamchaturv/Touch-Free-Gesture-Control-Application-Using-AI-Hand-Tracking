@@ -1,4 +1,10 @@
 """
+Module: shared_state.py
+Description: Central reactive data store for the MMGI PyQt6 dashboard —
+             exposes every live pipeline value (fps, mode, gesture, etc.) as
+             a typed PyQt6 signal so all UI panels update independently.
+Author: Pratham Chaturvedi
+
 ui/shared_state.py - Central reactive state store for the MMGI PyQt6 dashboard.
 
 All live data produced by the worker thread is stored here and exposed as

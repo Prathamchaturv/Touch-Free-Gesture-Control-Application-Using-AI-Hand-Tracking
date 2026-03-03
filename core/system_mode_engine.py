@@ -1,4 +1,10 @@
 """
+Module: system_mode_engine.py
+Description: System Mode air-mouse engine — translates hand landmarks into
+             Win32 mouse events (cursor move, left/right click, scroll,
+             double-click) using EMA smoothing and rising-edge detection.
+Author: Pratham Chaturvedi
+
 core/system_mode_engine.py - System Mode Air Mouse Engine
 
 Provides full air-mouse control when 'System Mode' is active:

@@ -1,4 +1,10 @@
 """
+Module: fps_counter.py
+Description: Rolling-window FPS counter — tracks frame timestamps across a
+             configurable window size and renders the live FPS value onto
+             OpenCV video frames.
+Author: Pratham Chaturvedi
+
 utils/fps_counter.py - Performance Monitor
 
 Tracks frames-per-second using a rolling window and renders

@@ -1,4 +1,9 @@
 """
+Module: config.py
+Description: Dot-key configuration loader — reads JSON config files and merges
+             them with built-in defaults, exposing values via attribute access.
+Author: Pratham Chaturvedi
+
 utils/config.py - Settings Manager
 
 Loads configuration from JSON files and provides defaults.

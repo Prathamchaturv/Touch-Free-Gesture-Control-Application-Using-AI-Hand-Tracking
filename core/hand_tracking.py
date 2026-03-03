@@ -1,4 +1,10 @@
 """
+Module: hand_tracking.py
+Description: MediaPipe HandLandmarker wrapper — detects hands in video frames,
+             extracts 21 3-D landmarks, draws the hand skeleton overlay, and
+             determines per-finger extension states.
+Author: Pratham Chaturvedi
+
 core/hand_tracking.py - The Hand Detective
 
 Uses MediaPipe AI technology (Tasks API, mediapipe >= 0.10.0) to:

@@ -1,4 +1,10 @@
 """
+Module: activation_manager.py
+Description: Safety gate for gesture execution — requires Open Palm held for
+             2 seconds to activate and Fist to deactivate instantly, preventing
+             accidental command firing.
+Author: Pratham Chaturvedi
+
 engine/activation_manager.py - The Safety Gatekeeper
 
 Manages the system's active/inactive state with multiple safety layers:
