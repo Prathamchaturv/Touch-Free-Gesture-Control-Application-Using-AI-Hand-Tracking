@@ -1,0 +1,12 @@
+MMGI UI Screenshot
+==================
+Placeholder for assets/ui_screenshot.png
+
+This file should contain a screenshot of the MMGI dashboard showing:
+  - Header bar with MMGI logo and mode pill
+  - Left sidebar with Vision / Mode tabs
+  - Centre: live camera feed with hand skeleton overlay
+  - Right panel: System card, Mode card, Performance card
+  - Bottom bar: Activity Log with event pills
+
+Replace this file with the actual ui_screenshot.png image.

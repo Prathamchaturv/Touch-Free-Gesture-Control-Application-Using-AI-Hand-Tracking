@@ -1,0 +1,27 @@
+MMGI Workflow Diagram
+=====================
+Placeholder for assets/workflow.png
+
+Frame pipeline workflow:
+
+  Camera.read_frame()
+        │
+        ▼
+  HandTracker.detect_hands()
+        │
+        ▼
+  GestureClassifier.classify()
+        │
+        ▼
+  DecisionEngine.process()  ──→  mode_changed? → update mode
+        │
+        ▼
+  ActivationManager.update()
+        │
+        ▼
+  ActionExecutor.execute()  (only when active + action resolved)
+        │
+        ▼
+  SharedState updates + frame emit → UI
+
+Replace this file with the actual workflow.png diagram.

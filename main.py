@@ -133,7 +133,7 @@ def run_dashboard() -> None:
     """Launch the PyQt6 Smart Mode AI dashboard."""
     from PyQt6.QtWidgets import QApplication
     from PyQt6.QtCore    import Qt
-    from ui.main_window  import MainWindow
+    from ui.ui           import MainWindow
 
     app = QApplication(sys.argv)
     app.setApplicationName('MMGI')

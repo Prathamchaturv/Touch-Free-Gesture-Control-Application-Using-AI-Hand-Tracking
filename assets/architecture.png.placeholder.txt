@@ -1,0 +1,22 @@
+MMGI Architecture Diagram
+=========================
+This file is a placeholder for assets/architecture.png
+
+The architecture diagram should illustrate the following components:
+
+  ┌─────────────────────────────────────────────────────────┐
+  │                        MMGI                             │
+  │                 Multi-Modal Gesture                     │
+  │                    Intelligence                         │
+  └─────────────────────────────────────────────────────────┘
+               │
+   ┌───────────┼───────────┐
+   ▼           ▼           ▼
+ core/       engine/      ui/
+ ─────       ───────      ───
+ HandTracker  Decision    MainWindow
+ Gesture      Engine      VisionPanel
+ Classifier   Activation  SystemPanel
+ SystemMode   Manager     ActivityLog
+
+Replace this file with the actual architecture.png diagram.
