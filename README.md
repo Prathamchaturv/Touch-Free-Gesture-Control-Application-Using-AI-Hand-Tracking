@@ -253,13 +253,12 @@ remap gestures. Each mode section is a flat `"GestureName": "action_key"` dict.
 
 ## 6 · Screenshots
 
+> **Add screenshots to `assets/` and update the paths below.**
+
 ### Dashboard — App Mode (Inactive)
 
-![MMGI UI — App Mode Inactive](assets/ui_preview.png)
-
-> Three-panel layout: left sidebar (Vision / Mode navigation), centre live camera feed
-> with gesture overlay, right info panel (System status, Mode map, Performance metrics,
-> Volume and Confidence bars). Activity Log runs along the bottom.
+> Place actual screenshots at `assets/screenshot_app_mode.png` and
+> `assets/screenshot_system_mode.png`.
 
 ---
 
