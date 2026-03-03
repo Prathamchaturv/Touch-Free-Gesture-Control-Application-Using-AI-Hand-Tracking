@@ -255,14 +255,11 @@ remap gestures. Each mode section is a flat `"GestureName": "action_key"` dict.
 
 ### Dashboard — App Mode (Inactive)
 
-![MMGI Dashboard UI](assets/ui_preview.png)
+![MMGI UI — App Mode Inactive](assets/ui_preview.png)
 
-**UI Layout:**
-- **Top bar** — mode pill (APP MODE) and system status indicator (INACTIVE)
-- **Left sidebar** — Vision / Mode navigation tabs with collapse toggle
-- **Centre panel** — live camera feed with in-frame status overlay (mode, FPS, activation state) and mode-switch stability bar at the bottom
-- **Right panel** — System section (activate/deactivate button), Mode section (current mode + gesture→action mapping, switch trigger), Performance section (FPS, latency, volume slider, confidence bar)
-- **Bottom bar** — Activity Log with timestamped event pills
+> Three-panel layout: left sidebar (Vision / Mode navigation), centre live camera feed
+> with gesture overlay, right info panel (System status, Mode map, Performance metrics,
+> Volume and Confidence bars). Activity Log runs along the bottom.
 
 ---
 
