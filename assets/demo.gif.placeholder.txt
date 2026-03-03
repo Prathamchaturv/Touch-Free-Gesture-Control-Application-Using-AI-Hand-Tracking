@@ -1,0 +1,14 @@
+Place your demo.gif here.
+
+Record a 20-second demo showing:
+  1. Switch mode  — hold Three Fingers 1 s  (App → Media → System)
+  2. Air mouse    — One Finger to move cursor, Pinky to click
+  3. Media control — Four Fingers play/pause, Ring+Pinky next track
+  4. Activation   — Open Palm 2 s to activate, Fist to deactivate
+
+Recommended tools (Windows):
+  - ScreenToGif  (free, records directly to .gif)
+  - OBS Studio   → record MP4 → convert with ffmpeg:
+      ffmpeg -i demo.mp4 -vf "fps=15,scale=800:-1" assets/demo.gif
+
+Replace this file with the actual demo.gif before publishing.

@@ -9,6 +9,18 @@
 
 ---
 
+## Demo
+
+![MMGI Demo](assets/demo.gif)
+
+> **20-second walkthrough** — mode switching (App → Media → System), Air Mouse cursor
+> control and clicking, media playback control, and gesture activation/deactivation.
+>
+> *To record your own demo: run `python main.py`, use OBS or ScreenToGif to capture
+> a 20-second clip, export as `assets/demo.gif`, and replace this placeholder.*
+
+---
+
 ## 1 · Overview
 
 **MMGI (Multi-Modal Gesture Intelligence)** is a real-time hand gesture recognition system
