@@ -76,6 +76,8 @@ All clicks use **rising-edge detection** (fire once per gesture onset, not on ho
 
 ## 3 · Architecture
 
+![MMGI Architecture Diagram](assets/architecture.png)
+
 ### Pipeline Diagram
 
 ```
