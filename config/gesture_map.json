@@ -1,5 +1,5 @@
 {
-    "_comment": "Smart Mode gesture-action mappings. Only Three Fingers cycles modes (App→Media→System→App). One/Two Fingers are free to use as actions.",
+    "_comment": "Smart Mode gesture-action mappings. Three Fingers cycles modes (App→Media→System→App). System Mode uses air mouse — gestures are handled directly by AirMouseController, not this map.",
 
     "mode_switch": {
         "Three Fingers": "next_mode"
@@ -15,6 +15,15 @@
         "Two Fingers":  "volume_down",
         "Four Fingers": "play_pause",
         "Thumbs Up":    "mute"
+    },
+
+    "_system_mode_note": "System Mode air mouse gestures (handled by AirMouseController — not action strings):",
+    "_system_mode_gestures": {
+        "One Finger":    "Move cursor  (index fingertip tracks screen position)",
+        "Two Fingers":   "Scroll       (vertical finger movement drives scroll wheel)",
+        "Pinky":         "Left click",
+        "Ring and Pinky":"Right click",
+        "Thumbs Up":     "Double-click"
     },
 
     "System Mode": {}

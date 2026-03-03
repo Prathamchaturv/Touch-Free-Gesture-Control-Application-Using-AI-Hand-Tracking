@@ -234,3 +234,24 @@ class DecisionEngine:
                 **defaults.get(mode, {}),
                 **data.get(mode, {}),
             }
+
+
+# ---------------------------------------------------------------------------
+# Module-level convenience wrapper (used by simple tests and external callers)
+# ---------------------------------------------------------------------------
+
+_engine = DecisionEngine()
+
+
+def get_action(mode: str, gesture: str) -> str | None:
+    """
+    Look up the action string for a gesture in a given mode.
+
+    Args:
+        mode:    One of 'App Mode', 'Media Mode', 'System Mode'.
+        gesture: Recognised gesture name, e.g. 'Thumbs Up'.
+
+    Returns:
+        Action string (e.g. 'play_pause') or None if no mapping exists.
+    """
+    return _engine.get_action(gesture, mode)
