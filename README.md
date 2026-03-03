@@ -71,7 +71,7 @@ PyQt6 dashboard are implemented as clearly separated, independently testable lay
 ### Dashboard — App Mode
 
 <p align="center">
-  <img src="assets/ui_dashboard.png" width="950">
+  <img src="assets/ui_dashboard_main.png" width="950">
 </p>
 
 > Three-panel layout: left sidebar (Vision / Mode navigation), centre live camera feed
@@ -133,15 +133,7 @@ gesture is interpreted.
 | 👍 Thumbs Up | Volume Up |
 | 🤙 Pinky | Volume Down |
 
-### 3.5 System Mode — Air Mouse
-
-| Gesture | Mouse Action |
-|---|---|
-| ☝️ One Finger | Move cursor (EMA-smoothed, dead-zone filtered) |
-| ✌️ Two Fingers | Scroll (vertical delta from anchor point) |
-| 🤙 Pinky | Left click |
-| 🤘 Ring and Pinky | Right click |
-| 👍 Thumbs Up | Double-click |
+### 3.5 System Mode 
 
 - Index fingertip (landmark 8) mapped to screen coordinates via a configurable edge-margin transform
 - **EMA smoothing** (`α = 0.25`) applied to raw landmark coordinates to remove per-frame jitter
