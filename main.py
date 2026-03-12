@@ -134,14 +134,21 @@ def run_headless() -> None:
 # ---------------------------------------------------------------------------
 
 def run_dashboard() -> None:
-    """Launch the PyQt6 Smart Mode AI dashboard."""
+    """Launch the PyQt6 Smart Mode AI dashboard, optionally gated by login."""
     from PyQt6.QtWidgets import QApplication
     from PyQt6.QtCore    import Qt
     from ui.ui           import MainWindow
+    from ui.login_window import LoginWindow
 
     app = QApplication(sys.argv)
     app.setApplicationName('MMGI')
     app.setApplicationDisplayName('MMGI — Smart Mode AI Controller')
+
+    # Show login screen when enabled in config/users.json
+    if LoginWindow.should_show():
+        login = LoginWindow()
+        if login.exec() != LoginWindow.DialogCode.Accepted:
+            sys.exit(0)
 
     window = MainWindow()
     window.show()
