@@ -41,6 +41,30 @@ STABILITY_FRAMES = 10          # consecutive frames same gesture required
 HOLD_SECONDS     = 1.0         # seconds the gesture must be held
 COOLDOWN_SECONDS = 1.5         # seconds before next mode switch allowed
 
+# Whitelist of action strings that may appear in gesture_map.json.
+# Any action not in this set will be rejected during config loading.
+ALLOWED_ACTIONS: frozenset[str] = frozenset({
+    # Application launchers
+    'open_brave',
+    'open_apple_music',
+    # Generic aliases accepted from external configs
+    'open_browser',
+    'open_music',
+    # Media controls
+    'next_track',
+    'prev_track',
+    'previous_track',
+    'play_pause',
+    'pause_media',
+    # Volume controls
+    'volume_up',
+    'volume_down',
+    'mute',
+    # Mode switching
+    'next_mode',
+    'switch_mode',
+})
+
 # Special sentinel stored in mode_switch map for cycling behaviour
 _NEXT_MODE = 'next_mode'
 
@@ -216,7 +240,7 @@ class DecisionEngine:
     # ------------------------------------------------------------------
 
     def _load_map(self, path: Path) -> None:
-        """Load Smart Mode mappings from gesture_map.json."""
+        """Load Smart Mode mappings from gesture_map.json, rejecting unknown actions."""
         data: dict = {}
         try:
             with open(path, 'r', encoding='utf-8') as fh:
@@ -231,15 +255,33 @@ class DecisionEngine:
 
         defaults = self._DEFAULT_MAPS
 
-        self._mode_switch_map = {
-            **defaults['mode_switch'],
-            **data.get('mode_switch', {}),
-        }
+        # Validate mode-switch entries from JSON (only 'next_mode'/'switch_mode' allowed)
+        raw_switch = data.get('mode_switch', {})
+        validated_switch: dict[str, str] = {}
+        for gesture, action in raw_switch.items():
+            if action in ALLOWED_ACTIONS:
+                validated_switch[gesture] = action
+            else:
+                print(
+                    f'[DecisionEngine] Security: rejected invalid mode_switch action '
+                    f'"{action}" for gesture "{gesture}"'
+                )
+
+        self._mode_switch_map = {**defaults['mode_switch'], **validated_switch}
+
+        # Validate per-mode action entries
         for mode in MODES:
-            self._action_maps[mode] = {
-                **defaults.get(mode, {}),
-                **data.get(mode, {}),
-            }
+            raw_mode = data.get(mode, {})
+            validated_mode: dict[str, str] = {}
+            for gesture, action in raw_mode.items():
+                if action in ALLOWED_ACTIONS:
+                    validated_mode[gesture] = action
+                else:
+                    print(
+                        f'[DecisionEngine] Security: rejected invalid action '
+                        f'"{action}" for gesture "{gesture}" in {mode}'
+                    )
+            self._action_maps[mode] = {**defaults.get(mode, {}), **validated_mode}
 
 
 # ---------------------------------------------------------------------------
