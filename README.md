@@ -159,13 +159,29 @@ gesture is interpreted.
 
 - Live camera feed panel with hand skeleton overlay and gesture label
 - Mode indicator in header and right panel, colour-coded by active mode
+- **Three active-mode indicator buttons** (APP / MEDIA / SYSTEM) highlight the current mode
+- **Mode change banner** — a 1.5-second notification displayed above the camera feed whenever
+  the mode switches (e.g. *Mode Changed → MEDIA MODE*)
+- **Gesture detection feedback bar** showing the last detected gesture and the last executed
+  action in real-time below the camera
 - System status pill: ACTIVE / INACTIVE with contrasting colour cue
 - Stability progress bar filling during Three-Finger mode-switch hold
 - Rolling-window FPS counter and per-frame processing latency display
 - Volume level and MediaPipe confidence percentage bars
 - Timestamped activity log of gesture events and system state changes
-- Collapsible sidebar with Vision and Mode navigation panels
+- Collapsible sidebar with **Vision**, **Mode**, and **Gestures** navigation panels
+- **Gesture Guide panel** (right side) — live list of all gesture→action mappings loaded
+  directly from `gesture_map.json`
 - `--headless` flag to run the pipeline with a plain OpenCV window instead of Qt
+
+### 3.8 Custom Gesture Mapping
+
+- **Gestures sidebar tab** displays a full table of all configurable gesture→action mappings
+  organised by mode (App / Media / System)
+- Each row shows the gesture name, a dropdown of available actions, and a **Save** button
+- Changes are written back to `config/gesture_map.json` immediately
+- The pipeline, ModeCard, and Gesture Guide panel all read from that file dynamically — no
+  restart required after saving
 
 ---
 
@@ -264,15 +280,20 @@ MMGI/
 │   ├── shared_state.py            # Reactive store — QObject + pyqtSignal per field
 │   ├── worker_thread.py           # QThread running the full pipeline loop
 │   └── ui.py                      # MainWindow, Sidebar, VisionPanel, SystemPanel,
-│                                  # ActivityLog, QSS stylesheet
+│                                  # GestureMapPanel, GestureGuideCard, ActivityLog, QSS
 │
 ├── utils/
 │   ├── config.py                  # Dot-key JSON config loader
-│   └── fps_counter.py             # Rolling-window FPS counter
+│   ├── fps_counter.py             # Rolling-window FPS counter
+│   └── logger.py                  # Performance logger → logs/mmgi_performance.log
+│
+├── logs/
+│   └── mmgi_performance.log       # Auto-created; records gesture + latency + action
 │
 ├── tests/
 │   ├── test_gesture_classifier.py # Unit tests for GestureClassifier (14 cases)
-│   └── test_mode_switching.py     # Unit tests for DecisionEngine (22 cases)
+│   ├── test_mode_switching.py     # Unit tests for DecisionEngine (22 cases)
+│   └── test_action_executor.py    # Unit tests for ActionExecutor (15 cases)
 │
 └── assets/                        # Screenshots and diagrams
 ```
@@ -434,10 +455,13 @@ python -m pytest tests/test_mode_switching.py -v
 |---|---|---|---|
 | `test_gesture_classifier.py` | `GestureClassifier` | 14 | All 10 named gestures, edge cases, Unknown fallback |
 | `test_mode_switching.py` | `DecisionEngine`, `AirMouseController` | 22 | Mode transitions, stability gate, cooldown, action lookup |
+| `test_action_executor.py` | `ActionExecutor` | 15 | Label completeness, action dispatch, feedback, edge cases |
 
 ---
 
 ## 11 · Performance Metrics
+
+### Runtime Benchmarks
 
 Measured on a mid-range laptop (Intel Core i5, integrated webcam, no GPU acceleration):
 
@@ -453,6 +477,25 @@ Measured on a mid-range laptop (Intel Core i5, integrated webcam, no GPU acceler
 | Mode switch cooldown | 1 500 ms | Prevents immediate re-trigger after switch |
 
 > Performance varies with webcam resolution, CPU load, and ambient lighting quality.
+
+### Performance Log File
+
+Every executed action is recorded to **`logs/mmgi_performance.log`** (auto-created on first
+run). Each line captures:
+
+```
+2026-03-12 14:23:01 | gesture='Two Fingers'  recognition_ms=38.4  action='volume_down'  mode='Media Mode'
+```
+
+Log fields:
+
+| Field | Description |
+|---|---|
+| timestamp | Wall-clock time of the event (`YYYY-MM-DD HH:MM:SS`) |
+| `gesture` | Recognised gesture name that triggered the action |
+| `recognition_ms` | End-to-end pipeline latency from frame start to action dispatch |
+| `action` | Action key that was executed (e.g. `volume_up`, `open_brave`) |
+| `mode` | Active Smart Mode at the time of execution |
 
 ---
 
