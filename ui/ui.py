@@ -21,6 +21,9 @@ Entry point:
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 # ===========================================================================
 # Colour tokens & global QSS  (was ui/styles.py)
 # ===========================================================================
@@ -106,10 +109,41 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel,
     QPushButton, QFrame, QProgressBar, QScrollArea,
     QSizePolicy, QSpacerItem, QMainWindow, QMessageBox,
+    QComboBox, QStackedWidget,
 )
 
 from ui.shared_state  import SharedState
 from ui.worker_thread import WorkerThread
+
+# ---------------------------------------------------------------------------
+# Gesture-map config helpers (shared across panels)
+# ---------------------------------------------------------------------------
+
+_GESTURE_MAP_PATH = Path(__file__).parent.parent / 'config' / 'gesture_map.json'
+
+# Human-readable labels for action keys (mirrors ActionExecutor._LABELS)
+_ACTION_DISPLAY_LABELS: dict[str, str] = {
+    'open_brave':        'Open Browser',
+    'open_apple_music':  'Open Music',
+    'next_track':        'Next Track',
+    'prev_track':        'Prev Track',
+    'play_pause':        'Play / Pause',
+    'volume_up':         'Volume Up',
+    'volume_down':       'Volume Down',
+    'mute':              'Mute',
+    'next_mode':         'Cycle Mode',
+}
+
+_ACTION_KEY_FROM_LABEL = {v: k for k, v in _ACTION_DISPLAY_LABELS.items()}
+
+
+def _load_gesture_map() -> dict:
+    """Load gesture_map.json, returning an empty dict on any error."""
+    try:
+        with open(_GESTURE_MAP_PATH, 'r', encoding='utf-8') as fh:
+            return json.load(fh)
+    except Exception:
+        return {}
 
 
 # ===========================================================================
@@ -237,8 +271,9 @@ COLLAPSED_W = 56
 ANIM_MS     = 200
 
 _TABS = [
-    ('vision', '◉', 'Vision'),
-    ('mode',   '⊞', 'Mode'),
+    ('vision',   '◉', 'Vision'),
+    ('mode',     '⊞', 'Mode'),
+    ('gestures', '✋', 'Gestures'),
 ]
 
 
@@ -377,6 +412,7 @@ class VisionPanel(QWidget):
     def __init__(self, state: SharedState, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._state = state
+        self._current_mode = 'App Mode'
         self._build_ui()
         self._connect_state()
 
@@ -384,8 +420,9 @@ class VisionPanel(QWidget):
         self.setStyleSheet(f'background-color: {BG_DEEP};')
         root = QVBoxLayout(self)
         root.setContentsMargins(20, 20, 20, 20)
-        root.setSpacing(12)
+        root.setSpacing(10)
 
+        # ── Camera frame ──────────────────────────────────────────────
         self._cam_frame = QFrame()
         self._cam_frame.setObjectName('cam_frame')
         self._cam_frame.setStyleSheet(
@@ -400,34 +437,71 @@ class VisionPanel(QWidget):
         self._video_label.setMinimumSize(480, 270)
         self._video_label.setText('⬤  Waiting for camera…')
         self._video_label.setStyleSheet(f'color: {TEXT_HINT}; font-size: 16px; background: transparent; border: none;')
-
         cam_lay.addWidget(self._video_label)
         root.addWidget(self._cam_frame, stretch=1)
 
-        info_row = QHBoxLayout()
-        info_row.setSpacing(20)
-
-        self._mode_pill = QLabel('APP MODE')
-        self._mode_pill.setFixedHeight(26)
-        self._mode_pill.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._mode_pill.setStyleSheet(
+        # ── Mode change banner (hidden until a mode switch fires) ─────
+        self._mode_banner = QLabel('')
+        self._mode_banner.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._mode_banner.setFixedHeight(32)
+        self._mode_banner.setStyleSheet(
             f'background-color: rgba(0,229,255,0.15); color: {ACCENT}; '
-            f'border: 1px solid {ACCENT}; border-radius: 13px; '
-            f'padding: 0 12px; font-size: 11px; font-weight: 700; letter-spacing: 1px;'
+            f'border: 1px solid {ACCENT}; border-radius: 8px; '
+            f'font-size: 13px; font-weight: 700; letter-spacing: 2px;'
+        )
+        self._mode_banner.setVisible(False)
+        root.addWidget(self._mode_banner)
+
+        # ── Active mode indicator buttons ─────────────────────────────
+        mode_row = QHBoxLayout()
+        mode_row.setSpacing(8)
+        self._mode_btns: dict[str, QPushButton] = {}
+        for mode_id, short_lbl in [('App Mode', 'APP MODE'), ('Media Mode', 'MEDIA MODE'), ('System Mode', 'SYSTEM MODE')]:
+            btn = QPushButton(short_lbl)
+            btn.setFixedHeight(28)
+            btn.setStyleSheet(self._mode_btn_style(mode_id, active=False))
+            btn.setEnabled(False)   # visual indicator only
+            self._mode_btns[mode_id] = btn
+            mode_row.addWidget(btn)
+        # Highlight initial mode
+        self._mode_btns['App Mode'].setStyleSheet(self._mode_btn_style('App Mode', active=True))
+        root.addLayout(mode_row)
+
+        # ── Gesture detection feedback ────────────────────────────────
+        feedback_frame = QFrame()
+        feedback_frame.setStyleSheet(
+            f'QFrame {{ background: {BG_CARD}; border: 1px solid {BORDER}; border-radius: 10px; }}'
+        )
+        fb_lay = QHBoxLayout(feedback_frame)
+        fb_lay.setContentsMargins(14, 8, 14, 8)
+        fb_lay.setSpacing(6)
+
+        gest_title = QLabel('DETECTED GESTURE')
+        gest_title.setStyleSheet(f'color: {TEXT_HINT}; font-size: 10px; letter-spacing: 1px; background: transparent; border: none;')
+        self._gesture_detected_val = QLabel('—')
+        self._gesture_detected_val.setStyleSheet(
+            f'color: {TEXT_PRI}; font-size: 13px; font-weight: 600; background: transparent; border: none;'
         )
 
-        gesture_lbl = QLabel('GESTURE')
-        gesture_lbl.setStyleSheet(f'color: {TEXT_HINT}; font-size: 11px; letter-spacing: 1px;')
+        sep = QLabel('|')
+        sep.setStyleSheet(f'color: {BORDER}; background: transparent; border: none; margin: 0 6px;')
 
-        self._gesture_val = QLabel('—')
-        self._gesture_val.setStyleSheet(f'color: {TEXT_PRI}; font-size: 13px; font-weight: 600;')
+        action_title = QLabel('LAST ACTION')
+        action_title.setStyleSheet(f'color: {TEXT_HINT}; font-size: 10px; letter-spacing: 1px; background: transparent; border: none;')
+        self._action_executed_val = QLabel('—')
+        self._action_executed_val.setStyleSheet(
+            f'color: {ACTIVE}; font-size: 13px; font-weight: 600; background: transparent; border: none;'
+        )
 
-        info_row.addWidget(self._mode_pill)
-        info_row.addStretch()
-        info_row.addWidget(gesture_lbl)
-        info_row.addWidget(self._gesture_val)
-        root.addLayout(info_row)
+        fb_lay.addWidget(gest_title)
+        fb_lay.addWidget(self._gesture_detected_val)
+        fb_lay.addWidget(sep)
+        fb_lay.addWidget(action_title)
+        fb_lay.addWidget(self._action_executed_val)
+        fb_lay.addStretch()
+        root.addWidget(feedback_frame)
 
+        # ── Mode-switch stability bar ─────────────────────────────────
         stab_lbl = QLabel('MODE SWITCH HOLD')
         stab_lbl.setStyleSheet(f'color: {TEXT_HINT}; font-size: 10px; letter-spacing: 1px;')
 
@@ -448,12 +522,28 @@ class VisionPanel(QWidget):
         root.addWidget(stab_lbl)
         root.addWidget(self._stability_bar)
 
+    @staticmethod
+    def _mode_btn_style(mode: str, active: bool = False) -> str:
+        colour = _MODE_ACCENT.get(mode, ACCENT)
+        if active:
+            return (
+                f'QPushButton {{ background: rgba(0,229,255,0.15); color: {colour}; '
+                f'border: 2px solid {colour}; border-radius: 8px; '
+                f'font-size: 10px; font-weight: 700; letter-spacing: 1px; padding: 0 10px; }}'
+            )
+        return (
+            f'QPushButton {{ background: transparent; color: {TEXT_HINT}; '
+            f'border: 1px solid {BORDER}; border-radius: 8px; '
+            f'font-size: 10px; letter-spacing: 1px; padding: 0 10px; }}'
+        )
+
     def _connect_state(self) -> None:
         s = self._state
         s.mode_changed.connect(self._on_mode_changed)
         s.gesture_changed.connect(self._on_gesture_changed)
         s.mode_stability_changed.connect(self._on_stability_changed)
         s.system_active_changed.connect(self._on_active_changed)
+        s.action_executed.connect(self._on_action_executed)
 
     @pyqtSlot(QImage)
     def update_frame(self, image: QImage) -> None:
@@ -473,19 +563,35 @@ class VisionPanel(QWidget):
     def _on_mode_changed(self, mode: str) -> None:
         colour = _MODE_ACCENT.get(mode, ACCENT)
         short  = mode.replace(' Mode', '').upper() + ' MODE'
-        self._mode_pill.setText(short)
-        self._mode_pill.setStyleSheet(
-            f'background-color: rgba(0,229,255,0.12); color: {colour}; '
-            f'border: 1px solid {colour}; border-radius: 13px; '
-            f'padding: 0 12px; font-size: 11px; font-weight: 700; letter-spacing: 1px;'
+
+        # Flash the mode change banner for 1.5 s
+        self._mode_banner.setText(f'Mode Changed  →  {short}')
+        self._mode_banner.setStyleSheet(
+            f'background-color: rgba(0,229,255,0.15); color: {colour}; '
+            f'border: 1px solid {colour}; border-radius: 8px; '
+            f'font-size: 13px; font-weight: 700; letter-spacing: 2px;'
         )
+        self._mode_banner.setVisible(True)
+        QTimer.singleShot(1500, lambda: self._mode_banner.setVisible(False))
+
+        # Highlight the active mode button
+        for m, btn in self._mode_btns.items():
+            btn.setStyleSheet(self._mode_btn_style(m, active=(m == mode)))
+
+        # Update camera frame border colour
         self._cam_frame.setStyleSheet(
             f'QFrame#cam_frame {{ background-color: #000000; border: 2px solid {colour}; border-radius: 16px; }}'
         )
+        self._current_mode = mode
 
     @pyqtSlot(str)
     def _on_gesture_changed(self, gesture: str) -> None:
-        self._gesture_val.setText(gesture if gesture else '—')
+        self._gesture_detected_val.setText(gesture if gesture else '—')
+
+    @pyqtSlot(str)
+    def _on_action_executed(self, action: str) -> None:
+        label = _ACTION_DISPLAY_LABELS.get(action, action)
+        self._action_executed_val.setText(label if label else '—')
 
     @pyqtSlot(float)
     def _on_stability_changed(self, progress: float) -> None:
@@ -493,9 +599,9 @@ class VisionPanel(QWidget):
 
     @pyqtSlot(bool)
     def _on_active_changed(self, active: bool) -> None:
-        border_colour = ACTIVE if active else BORDER
+        colour = _MODE_ACCENT.get(self._current_mode, ACCENT) if active else BORDER
         self._cam_frame.setStyleSheet(
-            f'QFrame#cam_frame {{ background-color: #000000; border: 2px solid {border_colour}; border-radius: 16px; }}'
+            f'QFrame#cam_frame {{ background-color: #000000; border: 2px solid {colour}; border-radius: 16px; }}'
         )
 
 
@@ -704,12 +810,18 @@ class ModeCard(QFrame):
             item = self._instr_lay.takeAt(0)
             if item.widget():
                 item.widget().deleteLater()
-        instructions = _GESTURE_INSTRUCTIONS.get(mode, [])
-        for r, (gesture, action) in enumerate(instructions):
+        # Load dynamically from gesture_map.json
+        data = _load_gesture_map()
+        mode_gestures = data.get(mode, {})
+        instructions = [
+            (gesture, _ACTION_DISPLAY_LABELS.get(action, action))
+            for gesture, action in mode_gestures.items()
+        ]
+        for r, (gesture, action_lbl) in enumerate(instructions):
             lbl_l = QLabel(gesture)
             lbl_l.setStyleSheet(f'color: {TEXT_SEC}; font-size: 11px; background: transparent; border: none;')
             lbl_l.setWordWrap(True)
-            lbl_r = QLabel(action)
+            lbl_r = QLabel(action_lbl)
             lbl_r.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
             lbl_r.setStyleSheet(f'color: {ACCENT}; font-size: 11px; font-weight: 600; background: transparent; border: none;')
             lbl_r.setWordWrap(True)
@@ -849,6 +961,244 @@ class PerformanceCard(QFrame):
         self._conf_bar.setValue(pct)
 
 
+# ===========================================================================
+# GestureGuideCard  — right-panel card showing all mappings dynamically
+# ===========================================================================
+
+class GestureGuideCard(QFrame):
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self._build()
+        self._load_guide()
+
+    def _build(self) -> None:
+        self.setObjectName('card')
+        self.setStyleSheet(
+            f'QFrame#card {{ background-color: {BG_CARD}; border: 1px solid {BORDER}; border-radius: 15px; }}'
+        )
+        lay = QVBoxLayout(self)
+        lay.setContentsMargins(16, 14, 16, 14)
+        lay.setSpacing(8)
+
+        title = QLabel('GESTURE GUIDE')
+        title.setStyleSheet(
+            f'color: {ACCENT}; font-size: 10px; font-weight: 600; letter-spacing: 2px; background: transparent; border: none;'
+        )
+        lay.addWidget(title)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setStyleSheet('QScrollArea { background: transparent; border: none; }')
+        scroll.setMinimumHeight(120)
+        scroll.setMaximumHeight(200)
+
+        self._inner = QWidget()
+        self._inner.setStyleSheet('background: transparent;')
+        self._inner_lay = QVBoxLayout(self._inner)
+        self._inner_lay.setContentsMargins(0, 0, 0, 0)
+        self._inner_lay.setSpacing(3)
+
+        scroll.setWidget(self._inner)
+        lay.addWidget(scroll)
+
+    def _load_guide(self) -> None:
+        while self._inner_lay.count():
+            item = self._inner_lay.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+        data = _load_gesture_map()
+        modes_to_show = ['App Mode', 'Media Mode', 'System Mode']
+        for mode in modes_to_show:
+            gestures = data.get(mode, {})
+            if not gestures:
+                continue
+            colour = _MODE_COLOUR.get(mode, ACCENT)
+            mode_lbl = QLabel(mode.split()[0].upper())
+            mode_lbl.setStyleSheet(
+                f'color: {colour}; font-size: 9px; font-weight: 700; letter-spacing: 1px; '
+                f'background: transparent; border: none; padding-top: 4px;'
+            )
+            self._inner_lay.addWidget(mode_lbl)
+            for gesture, action in gestures.items():
+                action_label = _ACTION_DISPLAY_LABELS.get(action, action)
+                row = _instr_row(gesture, action_label, TEXT_SEC, ACCENT)
+                self._inner_lay.addWidget(row)
+
+    def refresh(self) -> None:
+        """Reload content from gesture_map.json."""
+        self._load_guide()
+
+
+# ===========================================================================
+# GestureMapPanel — full Gestures tab for editing gesture→action mappings
+# ===========================================================================
+
+class GestureMapPanel(QWidget):
+    mapping_changed = pyqtSignal()   # emitted after any mapping is saved
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._build_ui()
+        self._load_map()
+
+    def _build_ui(self) -> None:
+        self.setStyleSheet(f'background-color: {BG_DEEP};')
+        root = QVBoxLayout(self)
+        root.setContentsMargins(28, 24, 28, 24)
+        root.setSpacing(16)
+
+        # Header ────────────────────────────────────────────────────────
+        hdr = QHBoxLayout()
+        title = QLabel('GESTURE MAPPING')
+        title.setStyleSheet(
+            f'color: {ACCENT}; font-size: 16px; font-weight: 700; letter-spacing: 2px;'
+        )
+        subtitle = QLabel('Select a new action from the dropdown and press Save to reassign a gesture.')
+        subtitle.setStyleSheet(f'color: {TEXT_HINT}; font-size: 11px;')
+        hdr.addWidget(title)
+        hdr.addStretch()
+        hdr.addWidget(subtitle)
+        root.addLayout(hdr)
+
+        # Scrollable table area ─────────────────────────────────────────
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setStyleSheet('QScrollArea { background: transparent; border: none; }')
+
+        self._container = QWidget()
+        self._container.setStyleSheet('background: transparent;')
+        self._rows_lay = QVBoxLayout(self._container)
+        self._rows_lay.setContentsMargins(0, 0, 0, 0)
+        self._rows_lay.setSpacing(6)
+        self._rows_lay.addStretch()
+
+        scroll.setWidget(self._container)
+        root.addWidget(scroll, stretch=1)
+
+    def _load_map(self) -> None:
+        """Rebuild the table rows from gesture_map.json."""
+        # Clear all rows (leave the trailing stretch)
+        while self._rows_lay.count() > 1:
+            item = self._rows_lay.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+        data = _load_gesture_map()
+        modes_to_show = ['App Mode', 'Media Mode', 'System Mode']
+
+        for mode in modes_to_show:
+            mode_gestures = dict(data.get(mode, {}))
+            colour = _MODE_COLOUR.get(mode, ACCENT)
+
+            # Mode section header
+            mode_hdr = QLabel(mode.upper())
+            mode_hdr.setStyleSheet(
+                f'color: {colour}; font-size: 11px; font-weight: 700; letter-spacing: 2px; '
+                f'background: transparent; padding: 10px 0 4px 0;'
+            )
+            self._rows_lay.insertWidget(self._rows_lay.count() - 1, mode_hdr)
+
+            if not mode_gestures:
+                empty = QLabel('No gestures configured for this mode.')
+                empty.setStyleSheet(
+                    f'color: {TEXT_HINT}; font-size: 11px; font-style: italic; background: transparent; padding: 2px 4px;'
+                )
+                self._rows_lay.insertWidget(self._rows_lay.count() - 1, empty)
+            else:
+                for gesture, action in mode_gestures.items():
+                    row_widget = self._build_row(mode, gesture, action)
+                    self._rows_lay.insertWidget(self._rows_lay.count() - 1, row_widget)
+
+    def _build_row(self, mode: str, gesture: str, current_action: str) -> QWidget:
+        row = QFrame()
+        row.setStyleSheet(
+            f'QFrame {{ background: {BG_CARD}; border: 1px solid {BORDER}; border-radius: 10px; }}'
+        )
+        lay = QHBoxLayout(row)
+        lay.setContentsMargins(16, 8, 12, 8)
+        lay.setSpacing(12)
+
+        gesture_lbl = QLabel(gesture)
+        gesture_lbl.setFixedWidth(140)
+        gesture_lbl.setStyleSheet(
+            f'color: {TEXT_PRI}; font-size: 13px; background: transparent; border: none;'
+        )
+
+        arrow = QLabel('→')
+        arrow.setStyleSheet(f'color: {TEXT_HINT}; font-size: 14px; background: transparent; border: none;')
+
+        combo = QComboBox()
+        combo.setStyleSheet(f"""
+            QComboBox {{
+                background: {BG_HOVER}; color: {TEXT_PRI}; border: 1px solid {BORDER};
+                border-radius: 6px; padding: 4px 10px; font-size: 12px; min-width: 160px;
+            }}
+            QComboBox::drop-down {{ border: none; padding-right: 6px; }}
+            QComboBox:hover {{ border-color: {ACCENT}; }}
+            QComboBox QAbstractItemView {{
+                background: {BG_CARD}; border: 1px solid {BORDER}; color: {TEXT_PRI};
+                selection-background-color: rgba(0,229,255,0.2);
+            }}
+        """)
+        for display_name in _ACTION_DISPLAY_LABELS.values():
+            combo.addItem(display_name)
+        current_display = _ACTION_DISPLAY_LABELS.get(current_action, current_action)
+        idx = combo.findText(current_display)
+        if idx >= 0:
+            combo.setCurrentIndex(idx)
+
+        saved_lbl = QLabel('✓ Saved')
+        saved_lbl.setStyleSheet(
+            f'color: {ACTIVE}; font-size: 11px; font-weight: 600; background: transparent; border: none;'
+        )
+        saved_lbl.setVisible(False)
+
+        save_btn = QPushButton('Save')
+        save_btn.setFixedSize(64, 30)
+        save_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        save_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: rgba(0,229,255,0.12); color: {ACCENT}; border: 1px solid {ACCENT};
+                border-radius: 6px; font-size: 12px; font-weight: 600;
+            }}
+            QPushButton:hover {{ background: rgba(0,229,255,0.28); }}
+        """)
+
+        def _on_save(m=mode, g=gesture, c=combo, sl=saved_lbl):
+            selected_display = c.currentText()
+            action_key = _ACTION_KEY_FROM_LABEL.get(selected_display, selected_display)
+            self._save_mapping(m, g, action_key)
+            sl.setVisible(True)
+            QTimer.singleShot(1500, lambda: sl.setVisible(False))
+
+        save_btn.clicked.connect(_on_save)
+
+        lay.addWidget(gesture_lbl)
+        lay.addWidget(arrow)
+        lay.addWidget(combo, stretch=1)
+        lay.addWidget(saved_lbl)
+        lay.addWidget(save_btn)
+        return row
+
+    def _save_mapping(self, mode: str, gesture: str, action: str) -> None:
+        try:
+            data = _load_gesture_map()
+            if mode not in data:
+                data[mode] = {}
+            data[mode][gesture] = action
+            with open(_GESTURE_MAP_PATH, 'w', encoding='utf-8') as fh:
+                json.dump(data, fh, indent=4)
+            self.mapping_changed.emit()
+        except Exception as exc:
+            print(f'[GestureMapPanel] Failed to save: {exc}')
+
+    def reload(self) -> None:
+        """Re-read gesture_map.json and refresh the displayed rows."""
+        self._load_map()
+
+
 class SystemPanel(QWidget):
     def __init__(self, state: SharedState, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -862,8 +1212,13 @@ class SystemPanel(QWidget):
         root.setSpacing(10)
         root.addWidget(SystemCard(state))
         root.addWidget(ModeCard(state))
+        self._guide_card = GestureGuideCard()
+        root.addWidget(self._guide_card)
         root.addWidget(PerformanceCard(state))
         root.addStretch()
+
+    def refresh_guide(self) -> None:
+        self._guide_card.refresh()
 
 
 # ===========================================================================
@@ -899,16 +1254,49 @@ class MainWindow(QMainWindow):
         body = QHBoxLayout()
         body.setSpacing(0)
         body.setContentsMargins(0, 0, 0, 0)
-        self._sidebar     = Sidebar()
-        self._vision      = VisionPanel(self._state)
-        self._sys_panel   = SystemPanel(self._state)
+
+        self._sidebar = Sidebar()
+        self._sidebar.tab_selected.connect(self._on_tab_selected)
+
+        # Main view: camera + system panel
+        main_view = QWidget()
+        main_view.setStyleSheet(f'background: {BG_DEEP};')
+        main_lay = QHBoxLayout(main_view)
+        main_lay.setContentsMargins(0, 0, 0, 0)
+        main_lay.setSpacing(0)
+        self._vision    = VisionPanel(self._state)
+        self._sys_panel = SystemPanel(self._state)
+        main_lay.addWidget(self._vision, stretch=1)
+        main_lay.addWidget(self._sys_panel)
+
+        # Gestures tab view
+        self._gesture_map_panel = GestureMapPanel()
+        self._gesture_map_panel.mapping_changed.connect(self._on_mapping_changed)
+
+        # Stack: index 0 = main view, index 1 = gesture mapping
+        self._body_stack = QStackedWidget()
+        self._body_stack.addWidget(main_view)
+        self._body_stack.addWidget(self._gesture_map_panel)
+
         body.addWidget(self._sidebar)
-        body.addWidget(self._vision, stretch=1)
-        body.addWidget(self._sys_panel)
+        body.addWidget(self._body_stack, stretch=1)
         root.addLayout(body, stretch=1)
 
         self._activity = ActivityLog(self._state)
         root.addWidget(self._activity)
+
+    @pyqtSlot(str)
+    def _on_tab_selected(self, tab_id: str) -> None:
+        if tab_id == 'gestures':
+            self._gesture_map_panel.reload()
+            self._body_stack.setCurrentIndex(1)
+        else:
+            self._body_stack.setCurrentIndex(0)
+
+    @pyqtSlot()
+    def _on_mapping_changed(self) -> None:
+        """Refresh the gesture guide card after a mapping is saved."""
+        self._sys_panel.refresh_guide()
 
     def _build_header(self) -> QWidget:
         header = QWidget()
