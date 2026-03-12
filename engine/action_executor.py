@@ -62,6 +62,7 @@ class ActionExecutor:
     }
 
     _FEEDBACK_DURATION: float = 2.5   # seconds to show on-screen notification
+    _COOLDOWN:          float = 1.0   # seconds before the same action may fire again
 
     def __init__(self, config: dict | None = None):
         cfg = config or {}
@@ -78,15 +79,24 @@ class ActionExecutor:
 
         self._last_action: str | None = None
         self._last_action_time: float = 0.0
+        # Per-action cooldown tracking: action → timestamp of last execution
+        self._last_executed: dict[str, float] = {}
 
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
 
     def execute(self, action: str) -> None:
-        """Execute the named action and record it for display feedback."""
+        """Execute the named action, subject to per-action cooldown."""
+        now = time.time()
+
+        # Rate-limit: skip if this action is still within its cooldown window
+        if now - self._last_executed.get(action, 0.0) < self._COOLDOWN:
+            return
+
+        self._last_executed[action] = now
         self._last_action      = action
-        self._last_action_time = time.time()
+        self._last_action_time = now
 
         label = self._LABELS.get(action, action)
         print(f'  [{action}] {label}')
