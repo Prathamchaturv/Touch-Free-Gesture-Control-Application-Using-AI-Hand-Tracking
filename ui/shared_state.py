@@ -58,6 +58,9 @@ class SharedState(QObject):
     # Activity log: (timestamp_str, event_category, description)
     log_event               = pyqtSignal(str, str, str)
 
+    # Fired each time an action is executed (action key string, e.g. 'open_brave')
+    action_executed         = pyqtSignal(str)
+
     # ------------------------------------------------------------------ init
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
@@ -70,6 +73,7 @@ class SharedState(QObject):
         self._in_cooldown      = False
         self._volume_level     = 50
         self._mode_stability   = 0.0
+        self._last_action      = ''
 
     # ------------------------------------------------------------------ getters
     @property
@@ -135,6 +139,11 @@ class SharedState(QObject):
     def set_mode_stability(self, value: float) -> None:
         self._mode_stability = round(max(0.0, min(1.0, value)), 3)
         self.mode_stability_changed.emit(self._mode_stability)
+
+    def set_action_executed(self, action: str) -> None:
+        """Record the most recently executed action and broadcast it."""
+        self._last_action = action
+        self.action_executed.emit(action)
 
     def emit_log(self, timestamp: str, category: str, description: str) -> None:
         """Convenience wrapper to push an activity log event."""

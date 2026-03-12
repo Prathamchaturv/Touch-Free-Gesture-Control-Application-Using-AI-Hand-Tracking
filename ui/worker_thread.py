@@ -44,6 +44,7 @@ from engine.decision_engine      import DecisionEngine
 from engine.action_executor      import ActionExecutor
 from utils.fps_counter           import FPSCounter
 from utils.config                import Config
+from utils.logger                import get_performance_logger
 from ui.shared_state             import SharedState
 
 
@@ -258,6 +259,15 @@ class WorkerThread(QThread):
                     action_executor.execute(action)
                     label = action_executor._LABELS.get(action, action)
                     state.emit_log(_ts(), 'ACTION', f'{label}  [{decision_engine.current_mode}]')
+                    state.set_action_executed(action)
+                    # ---- performance log ----
+                    _perf = get_performance_logger()
+                    _perf.info(
+                        f'gesture={gesture!r}  '
+                        f'recognition_ms={(time.perf_counter() - t_start) * 1000:.1f}  '
+                        f'action={action!r}  '
+                        f'mode={decision_engine.current_mode!r}'
+                    )
 
                 # ----------------------------------------------------------
                 # Update telemetry
