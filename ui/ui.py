@@ -645,7 +645,7 @@ def _card(title: str) -> tuple[QFrame, QLabel, QVBoxLayout]:
     frame = QFrame()
     frame.setObjectName('card')
     frame.setStyleSheet(
-        f'QFrame#card {{ background-color: {BG_CARD}; border: 1px solid {BORDER}; border-radius: 15px; }}'
+        f'QFrame#card {{ background-color: {BG_CARD}; border: 1px solid {BORDER}; border-radius: 12px; }}'
     )
     lay = QVBoxLayout(frame)
     lay.setContentsMargins(16, 14, 16, 16)
@@ -685,7 +685,7 @@ class SystemCard(QFrame):
     def _build(self) -> None:
         self.setObjectName('card')
         self.setStyleSheet(
-            f'QFrame#card {{ background-color: {BG_CARD}; border: 1px solid {BORDER}; border-radius: 15px; }}'
+            f'QFrame#card {{ background-color: {BG_CARD}; border: 1px solid {BORDER}; border-radius: 12px; }}'
         )
         lay = QVBoxLayout(self)
         lay.setContentsMargins(16, 14, 16, 16)
@@ -696,6 +696,7 @@ class SystemCard(QFrame):
             f'color: {ACCENT}; font-size: 10px; font-weight: 600; letter-spacing: 2px; background: transparent; border: none;'
         )
         lay.addWidget(title)
+        lay.addWidget(_divider())
 
         badge_row = QHBoxLayout()
         self._dot = QLabel('●')
@@ -719,6 +720,7 @@ class SystemCard(QFrame):
         lay.addWidget(self._toggle_btn)
 
         hint = QLabel('Show Open Palm 2 s to activate')
+        hint.setWordWrap(True)
         hint.setStyleSheet(f'color: {TEXT_HINT}; font-size: 11px; background: transparent; border: none;')
         hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
         lay.addWidget(hint)
@@ -762,12 +764,13 @@ class ModeCard(QFrame):
     def _build(self) -> None:
         self.setObjectName('card')
         self.setStyleSheet(
-            f'QFrame#card {{ background-color: {BG_CARD}; border: 1px solid {BORDER}; border-radius: 15px; }}'
+            f'QFrame#card {{ background-color: {BG_CARD}; border: 1px solid {BORDER}; border-radius: 12px; }}'
         )
         self._lay = QVBoxLayout(self)
         self._lay.setContentsMargins(16, 14, 16, 16)
         self._lay.setSpacing(8)
 
+        # Title row: 'MODE' label + current mode name
         title_row = QHBoxLayout()
         title_lbl = QLabel('MODE')
         title_lbl.setStyleSheet(
@@ -775,6 +778,7 @@ class ModeCard(QFrame):
         )
         self._mode_name = QLabel('APP MODE')
         self._mode_name.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        self._mode_name.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         self._mode_name.setStyleSheet(
             f'color: {MODE_APP}; font-size: 13px; font-weight: 700; background: transparent; border: none;'
         )
@@ -782,14 +786,17 @@ class ModeCard(QFrame):
         title_row.addStretch()
         title_row.addWidget(self._mode_name)
         self._lay.addLayout(title_row)
+        self._lay.addWidget(_divider())
 
+        # Gesture–action instruction grid
         self._instr_container = QWidget()
         self._instr_container.setStyleSheet('background: transparent;')
         self._instr_lay = QGridLayout(self._instr_container)
-        self._instr_lay.setContentsMargins(0, 0, 0, 0)
-        self._instr_lay.setSpacing(5)
-        self._instr_lay.setColumnStretch(0, 1)
-        self._instr_lay.setColumnStretch(1, 1)
+        self._instr_lay.setContentsMargins(0, 2, 0, 2)
+        self._instr_lay.setHorizontalSpacing(8)
+        self._instr_lay.setVerticalSpacing(5)
+        self._instr_lay.setColumnStretch(0, 3)
+        self._instr_lay.setColumnStretch(1, 2)
         self._lay.addWidget(self._instr_container)
 
         self._lay.addWidget(_divider())
@@ -819,6 +826,7 @@ class ModeCard(QFrame):
         ]
         for r, (gesture, action_lbl) in enumerate(instructions):
             lbl_l = QLabel(gesture)
+            lbl_l.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
             lbl_l.setStyleSheet(f'color: {TEXT_SEC}; font-size: 11px; background: transparent; border: none;')
             lbl_l.setWordWrap(True)
             lbl_r = QLabel(action_lbl)
@@ -829,6 +837,7 @@ class ModeCard(QFrame):
             self._instr_lay.addWidget(lbl_r, r, 1)
         if not instructions:
             ph = QLabel('No gestures configured')
+            ph.setWordWrap(True)
             ph.setStyleSheet(f'color: {TEXT_HINT}; font-size: 11px; font-style: italic; background: transparent; border: none;')
             self._instr_lay.addWidget(ph, 0, 0, 1, 2)
 
@@ -856,7 +865,7 @@ class PerformanceCard(QFrame):
     def _build(self) -> None:
         self.setObjectName('card')
         self.setStyleSheet(
-            f'QFrame#card {{ background-color: {BG_CARD}; border: 1px solid {BORDER}; border-radius: 15px; }}'
+            f'QFrame#card {{ background-color: {BG_CARD}; border: 1px solid {BORDER}; border-radius: 12px; }}'
         )
         lay = QVBoxLayout(self)
         lay.setContentsMargins(16, 14, 16, 16)
@@ -974,8 +983,9 @@ class GestureGuideCard(QFrame):
     def _build(self) -> None:
         self.setObjectName('card')
         self.setStyleSheet(
-            f'QFrame#card {{ background-color: {BG_CARD}; border: 1px solid {BORDER}; border-radius: 15px; }}'
+            f'QFrame#card {{ background-color: {BG_CARD}; border: 1px solid {BORDER}; border-radius: 12px; }}'
         )
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         lay = QVBoxLayout(self)
         lay.setContentsMargins(16, 14, 16, 14)
         lay.setSpacing(8)
@@ -985,22 +995,22 @@ class GestureGuideCard(QFrame):
             f'color: {ACCENT}; font-size: 10px; font-weight: 600; letter-spacing: 2px; background: transparent; border: none;'
         )
         lay.addWidget(title)
+        lay.addWidget(_divider())
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         scroll.setStyleSheet('QScrollArea { background: transparent; border: none; }')
-        scroll.setMinimumHeight(120)
-        scroll.setMaximumHeight(200)
+        scroll.setMinimumHeight(80)
 
         self._inner = QWidget()
         self._inner.setStyleSheet('background: transparent;')
         self._inner_lay = QVBoxLayout(self._inner)
-        self._inner_lay.setContentsMargins(0, 0, 0, 0)
-        self._inner_lay.setSpacing(3)
+        self._inner_lay.setContentsMargins(0, 0, 4, 0)
+        self._inner_lay.setSpacing(4)
 
         scroll.setWidget(self._inner)
-        lay.addWidget(scroll)
+        lay.addWidget(scroll, stretch=1)
 
     def _load_guide(self) -> None:
         while self._inner_lay.count():
@@ -1010,21 +1020,50 @@ class GestureGuideCard(QFrame):
 
         data = _load_gesture_map()
         modes_to_show = ['App Mode', 'Media Mode', 'System Mode']
+        first = True
         for mode in modes_to_show:
             gestures = data.get(mode, {})
             if not gestures:
                 continue
             colour = _MODE_COLOUR.get(mode, ACCENT)
-            mode_lbl = QLabel(mode.split()[0].upper())
+
+            if not first:
+                self._inner_lay.addWidget(_divider())
+            first = False
+
+            mode_lbl = QLabel(mode.upper())
             mode_lbl.setStyleSheet(
                 f'color: {colour}; font-size: 9px; font-weight: 700; letter-spacing: 1px; '
-                f'background: transparent; border: none; padding-top: 4px;'
+                f'background: transparent; border: none; padding-top: 2px;'
             )
             self._inner_lay.addWidget(mode_lbl)
-            for gesture, action in gestures.items():
+
+            # Two-column grid: Gesture | Action
+            grid_w = QWidget()
+            grid_w.setStyleSheet('background: transparent;')
+            grid = QGridLayout(grid_w)
+            grid.setContentsMargins(0, 0, 0, 0)
+            grid.setHorizontalSpacing(8)
+            grid.setVerticalSpacing(4)
+            grid.setColumnStretch(0, 3)
+            grid.setColumnStretch(1, 2)
+
+            for r, (gesture, action) in enumerate(gestures.items()):
                 action_label = _ACTION_DISPLAY_LABELS.get(action, action)
-                row = _instr_row(gesture, action_label, TEXT_SEC, ACCENT)
-                self._inner_lay.addWidget(row)
+                lbl_g = QLabel(gesture)
+                lbl_g.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+                lbl_g.setWordWrap(True)
+                lbl_g.setStyleSheet(f'color: {TEXT_SEC}; font-size: 11px; background: transparent; border: none;')
+                lbl_a = QLabel(action_label)
+                lbl_a.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+                lbl_a.setWordWrap(True)
+                lbl_a.setStyleSheet(f'color: {ACCENT}; font-size: 11px; font-weight: 600; background: transparent; border: none;')
+                grid.addWidget(lbl_g, r, 0)
+                grid.addWidget(lbl_a, r, 1)
+
+            self._inner_lay.addWidget(grid_w)
+
+        self._inner_lay.addStretch()
 
     def refresh(self) -> None:
         """Reload content from gesture_map.json."""
@@ -1205,17 +1244,36 @@ class SystemPanel(QWidget):
         self._build(state)
 
     def _build(self, state: SharedState) -> None:
-        self.setFixedWidth(340)
+        self.setMinimumWidth(280)
+        self.setMaximumWidth(380)
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
         self.setStyleSheet(f'background-color: {BG_DEEP};')
-        root = QVBoxLayout(self)
+
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+
+        # Wrap all cards in a scroll area so nothing is clipped
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setStyleSheet('QScrollArea { background: transparent; border: none; }')
+
+        container = QWidget()
+        container.setStyleSheet(f'background: {BG_DEEP};')
+        root = QVBoxLayout(container)
         root.setContentsMargins(0, 16, 16, 16)
-        root.setSpacing(10)
+        root.setSpacing(12)
         root.addWidget(SystemCard(state))
         root.addWidget(ModeCard(state))
         self._guide_card = GestureGuideCard()
         root.addWidget(self._guide_card)
         root.addWidget(PerformanceCard(state))
         root.addStretch()
+
+        scroll.setWidget(container)
+        outer.addWidget(scroll)
 
     def refresh_guide(self) -> None:
         self._guide_card.refresh()
